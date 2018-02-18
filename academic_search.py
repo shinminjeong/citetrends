@@ -1,7 +1,5 @@
 import os, json, requests
 import http.client, urllib.request, urllib.parse, urllib.error, base64
-from datetime import datetime
-from collections import Counter
 
 MAS_URL_PREFIX = "http://westus.api.cognitive.microsoft.com"
 headers = {
@@ -25,7 +23,7 @@ def get_papers_from_author(author):
     url = os.path.join(MAS_URL_PREFIX, "academic/v1.0/evaluate")
     query = {
       "expr": "Composite(AA.AuN=='{}')".format(author),
-      "count": 20,
+      "count": 1000,
       "offset": 0,
       "attributes": "prob,Id,Ti,Y,CC,AA.AuN,AA.AuId,RId"
     }
@@ -70,53 +68,3 @@ def get_author_information(author_ids):
     }
     data = query_academic_search("post", url, query)
     return data
-
-####################################################
-author_name = "lexing xie"
-print("------------ getting papers from", author_name, datetime.now())
-papers = get_papers_from_author(author_name)
-# print(json.dumps(papers, indent=2))
-print("------------ getting citation from paper list", datetime.now())
-paper_ids = [e["Id"] for e in papers["entities"]]
-print("author:", author_name)
-print("number of papers:",  len(paper_ids))
-# print(paper_ids[:5])
-citations = get_citations_from_papers(paper_ids)
-references = [e["RId"] if "RId" in e else [] for e in papers["entities"]]
-# print(json.dumps(citations, indent=2))
-
-print("------------ getting authors from citations", datetime.now())
-cite_counter = Counter()
-for res in citations["Results"]:
-    # print(res[0])
-    cite_paper_ids = res[0]["CitationIDs"]
-    authors = get_authors_from_papers(cite_paper_ids)
-    authors_ids = []
-    for ath in authors["Results"]:
-        authors_ids.extend(ath[0]["AuthorIDs"])
-    cite_counter += Counter(authors_ids)
-mostcommon = cite_counter.most_common(10)
-author_info = get_author_information([a[0] for a in mostcommon])
-author_name = {a[0]["CellID"]:a[0]["Name"] for a in author_info["Results"]}
-print("Top 10 authors in citation papers")
-print([(author_name[key], cite_counter[key]) for key in author_name.keys()])
-
-print("------------ getting authors from references", datetime.now())
-ref_counter = Counter()
-for res in references:
-    # print(res)
-    ref_paper_ids = res
-    authors = get_authors_from_papers(ref_paper_ids)
-    authors_ids = []
-    for ath in authors["Results"]:
-        authors_ids.extend(ath[0]["AuthorIDs"])
-    ref_counter += Counter(authors_ids)
-mostcommon = ref_counter.most_common(10)
-author_info = get_author_information([a[0] for a in mostcommon])
-author_name = {a[0]["CellID"]:a[0]["Name"] for a in author_info["Results"]}
-print("Top 10 authors in reference papers")
-print([(author_name[key], ref_counter[key]) for key in author_name.keys()])
-
-
-print("------------ finish!!!", datetime.now())
-####################################################
