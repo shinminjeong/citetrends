@@ -1,25 +1,28 @@
 import os, json, requests
 from datetime import datetime
 from collections import Counter
+from operator import itemgetter
 from academic_search import *
 
 def extract_author_ids(paper_ids):
-    counter = Counter()
     authors = get_authors_from_papers(paper_ids)
-    authors_ids = []
+    authors_score = {}
     for ath in authors["Results"]:
         try:
             if ego_id not in ath[0]["AuthorIDs"]:   # remove self citation
-                authors_ids.extend(ath[0]["AuthorIDs"])
+                for author in ath[0]["AuthorIDs"]:
+                    score = 1.0/len(ath[0]["AuthorIDs"])
+                    if author in authors_score:
+                        authors_score[author] += score
+                    else:
+                        authors_score[author] = score
         except Exception as e:
             pass
-    counter += Counter(authors_ids)
-
-    mostcommon = counter.most_common(30)
+    mostcommon = sorted(authors_score.items(), key=itemgetter(1), reverse=True)[:30]
     author_info = get_author_information([a[0] for a in mostcommon])
     author_name = {a[0]["CellID"]:a[0]["Name"] for a in author_info["Results"]}
     print("Top 10 authors")
-    print([(author_name[key], counter[key]) for key in author_name.keys()])
+    print([(author_name[key], authors_score[key]) for key in author_name.keys()])
 
 
 ####################################################
