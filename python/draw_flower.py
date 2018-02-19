@@ -1,4 +1,5 @@
 import os, sys, json, requests
+import itertools
 from datetime import datetime
 from collections import Counter
 from operator import itemgetter
@@ -14,18 +15,19 @@ def calculate_citation_score(cite_paper_ids, ego_id):
         paper_ids.extend(cite_paper_ids[pid]["citations"])
         for c in cite_paper_ids[pid]["citations"]:
             if c in paper_origin:
-                print("key already exists!!!!!!!!!!!!!!!!!!!!!!!!")
-            paper_origin[c] = pid
-    print(len(paper_origin.keys()), len(set(paper_origin.values()))) # TODO fix problem here...
+                paper_origin[c].append(pid)
+            else:
+                paper_origin[c] = [pid]
 
     authors = get_authors_from_papers(paper_ids)
-    paper_authors = {k:[] for k in list(set(paper_origin.values()))}
+    paper_authors = {k:[] for k in list(set(itertools.chain(*paper_origin.values())))}
+    # print(len(paper_authors))
     for ath in authors["Results"]:
         paper = ath[0]["CellID"]
         # print(paper_origin[paper], paper, ath[0]["AuthorIDs"])
         if ego_id not in ath[0]["AuthorIDs"]:   # remove self citation
-            original_paper = paper_origin[paper]
-            paper_authors[original_paper].extend(ath[0]["AuthorIDs"])
+            for original_paper in paper_origin[paper]:
+                paper_authors[original_paper].extend(ath[0]["AuthorIDs"])
     # print([(k, len(v)) for k, v in paper_authors.items()])
 
     authors_score = {}
@@ -36,12 +38,7 @@ def calculate_citation_score(cite_paper_ids, ego_id):
                 authors_score[author] += score
             else:
                 authors_score[author] = score
-
-    author_info = get_author_information(list(authors_score.keys()))
-    author_name = {a[0]["CellID"]:a[0]["Name"] for a in author_info["Results"]}
-    name_score_map = {author_name[key]: authors_score[key] for key in author_name.keys()}
-    # print(sorted(name_score_map.items(), key=itemgetter(1), reverse=True)[:10])
-    return name_score_map
+    return authors_score
 
 
 def calculate_reference_score(paper_ids, ego_id):
@@ -58,20 +55,20 @@ def calculate_reference_score(paper_ids, ego_id):
                         authors_score[author] = score
         except Exception as e:
             pass
-    author_info = get_author_information(list(authors_score.keys()))
-    author_name = {a[0]["CellID"]:a[0]["Name"] for a in author_info["Results"]}
-    name_score_map = {author_name[key]: authors_score[key] for key in author_name.keys()}
-    return name_score_map
+    return authors_score
 
 def generate_flower_score(cite, ref):
     nameset = set(cite.keys())
     nameset.union(ref.keys())
     flower = []
+
+    author_info = get_author_information(list(nameset))
+    author_name = {a[0]["CellID"]:a[0]["Name"] for a in author_info["Results"]}
     for k in nameset:
         cite_score = cite[k] if k in cite else 0
         ref_score = ref[k] if k in ref else 0
         node = {
-            "name": k,
+            "name": author_name[k],
             "influenced": ref_score,
             "influencing": cite_score,
             "sum": cite_score + ref_score,
