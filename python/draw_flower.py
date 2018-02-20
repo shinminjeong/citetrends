@@ -8,17 +8,18 @@ from academic_search import *
 SIZE_OF_FLOWER = 25
 
 def calculate_citation_score(cite_paper_ids, ego_id):
-    print(len([k for k, v in cite_paper_ids.items() if len(v["citations"]) > 0]))
+    # print(len([k for k, v in cite_paper_ids.items() if len(v["citations"]) > 0]))
     paper_origin = {}
     paper_ids = []
     for pid in cite_paper_ids:
         paper_ids.extend(cite_paper_ids[pid]["citations"])
         for c in cite_paper_ids[pid]["citations"]:
             if c in paper_origin:
+                # pass
                 paper_origin[c].append(pid)
             else:
                 paper_origin[c] = [pid]
-
+    # print(paper_origin)
     authors = get_authors_from_papers(paper_ids)
     paper_authors = {k:[] for k in list(set(itertools.chain(*paper_origin.values())))}
     # print(len(paper_authors))
@@ -54,7 +55,7 @@ def calculate_reference_score(paper_ids, ego_id):
                     else:
                         authors_score[author] = score
         except Exception as e:
-            pass
+            print(ath[0]["AuthorIDs"])
     return authors_score
 
 def generate_flower_score(cite, ref):
@@ -104,6 +105,8 @@ def draw_flower(name):
     papers_res = get_papers_from_author(ego_name)["entities"]
     ego_id = [a["AuId"] for a in papers_res[0]["AA"] if a["AuN"] == ego_name][0]
     papers = {e["Id"]:e for e in papers_res}
+    # papers = {e["Id"]:e for e in papers_res if e["Y"] == 2005}
+    # print([e["Ti"] for e in papers.values()])
 
     print("------------ getting citation from paper list", datetime.now())
     paper_ids = list(papers.keys())

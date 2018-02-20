@@ -19,6 +19,18 @@ def query_academic_search(type, url, query):
         exit()
     return json.loads((response.content).decode("utf-8"))
 
+def get_papers_from_field_of_study(field, citation):
+    url = os.path.join(MAS_URL_PREFIX, "academic/v1.0/evaluate")
+    query = {
+      "expr": "And(Composite(F.FN=='{}'), CC>={}, CC<{})".format(field, citation[0], citation[1]),
+      "count": 1000,
+      "offset": 0,
+    #   "attributes": "prob,Id,Ti,Y,CC,AA.AuN,AA.AuId,RId"
+      "attributes": "prob,Id,Ti,Y,CC,AA.AuN,AA.AuId"
+    }
+    data = query_academic_search("get", url, query)
+    return data
+
 def get_papers_from_author(author):
     url = os.path.join(MAS_URL_PREFIX, "academic/v1.0/evaluate")
     query = {

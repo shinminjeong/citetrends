@@ -12,8 +12,12 @@ sys.path.insert(0, PYTHON_DIR)
 from draw_flower import draw_flower
 
 def main(request):
-    ego_name = "lexing xie"
-    flower = draw_flower(ego_name)
-    # print(flower)
-    data1 = processdata("author", ego_name, flower)
+    ego_name = request.GET.get('keyword')
+    data1 = None
+    print("ego_name", ego_name)
+    if ego_name:
+        # ego_name = "lexing xie"
+        flower = draw_flower(ego_name)
+        # print(flower)
+        data1 = processdata("author", ego_name, flower)
     return render(request, "flower.html", {"author": data1});
