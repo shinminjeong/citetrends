@@ -15,26 +15,33 @@ def calculate_citation_score(cite_paper_ids, ego_id):
         paper_ids.extend(cite_paper_ids[pid]["citations"])
         for c in cite_paper_ids[pid]["citations"]:
             if c in paper_origin:
-                # pass
                 paper_origin[c].append(pid)
             else:
                 paper_origin[c] = [pid]
-    # print(paper_origin)
+    # print([k for k, v in paper_origin.items() if len(v) > 10])
+
     authors = get_authors_from_papers(paper_ids)
-    paper_authors = {k:[] for k in list(set(itertools.chain(*paper_origin.values())))}
+    original_paper_set = set(itertools.chain(*paper_origin.values()))
+    paper_authors = {k:[] for k in list(original_paper_set)}
     # print(len(paper_authors))
     for ath in authors["Results"]:
         paper = ath[0]["CellID"]
         # print(paper_origin[paper], paper, ath[0]["AuthorIDs"])
         if ego_id not in ath[0]["AuthorIDs"]:   # remove self citation
+            # print("true citation:", paper, paper_origin[paper])
             for original_paper in paper_origin[paper]:
                 paper_authors[original_paper].extend(ath[0]["AuthorIDs"])
+        # else:
+        #     print("self citation:", paper, paper_origin[paper])
     # print([(k, len(v)) for k, v in paper_authors.items()])
+    print(paper_authors.keys())
 
     authors_score = {}
     for pid, authors in paper_authors.items():
         for author in authors:
             score = 1.0/cite_paper_ids[pid]["numauthor"]
+            # numref = cite_paper_ids[pid]["numreference"]
+            # score /= numref if numref > 0 else 1 # normalize by # of reference
             if author in authors_score:
                 authors_score[author] += score
             else:
@@ -55,7 +62,7 @@ def calculate_reference_score(paper_ids, ego_id):
                     else:
                         authors_score[author] = score
         except Exception as e:
-            print(ath[0]["AuthorIDs"])
+            pass
     return authors_score
 
 def generate_flower_score(cite, ref):
@@ -122,6 +129,7 @@ def draw_flower(name):
         pid = res[0]["CellID"]
         cite_paper_ids[pid] = {
             "numauthor": len(papers[pid]["AA"]),
+            "numreference": len(res[0]["ReferenceIDs"]),
             "citations": res[0]["CitationIDs"]
         }
     # print(sorted([(k, len(v["citations"])) for k, v in cite_paper_ids.items()]))
@@ -140,6 +148,7 @@ def draw_flower(name):
 
 
 if __name__ == "__main__":
-    ego_name = "lexing xie"
+    # ego_name = "lexing xie"
+    ego_name = "stephen m blackburn"
     flower = draw_flower(ego_name)
     # print(flower)

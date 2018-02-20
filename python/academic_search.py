@@ -49,7 +49,7 @@ def get_citations_from_papers(paper_ids):
       "paper": {
         "type": "Paper",
         "id": paper_ids,
-        "select": [ "OriginalTitle", "CitationCount", "CitationIDs" ]
+        "select": [ "OriginalTitle", "CitationCount", "CitationIDs", "ReferenceIDs" ]
       }
     }
     data = query_academic_search("post", url, query)
