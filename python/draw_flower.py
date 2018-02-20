@@ -34,7 +34,7 @@ def calculate_citation_score(cite_paper_ids, ego_id):
         # else:
         #     print("self citation:", paper, paper_origin[paper])
     # print([(k, len(v)) for k, v in paper_authors.items()])
-    print(paper_authors.keys())
+    # print(paper_authors.keys())
 
     authors_score = {}
     for pid, authors in paper_authors.items():
