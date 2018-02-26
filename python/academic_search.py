@@ -16,7 +16,7 @@ def query_academic_search(type, url, query):
         print("return statue: " + str(response.status_code))
         print("ERROR: problem with the request.")
         print(response.content)
-        exit()
+        #exit()
     return json.loads((response.content).decode("utf-8"))
 
 def get_papers_from_field_of_study(field, citation):
@@ -30,6 +30,21 @@ def get_papers_from_field_of_study(field, citation):
     }
     data = query_academic_search("get", url, query)
     return data
+
+def get_paperinfo_from_title(paper_title):
+    url = os.path.join(MAS_URL_PREFIX, "academic/v1.0/interpret")
+    data = query_academic_search("get", url, {"query": paper_title})
+    # print(data)
+    interpret_expr = data["interpretations"][0]["rules"][0]["output"]["value"]
+    # print(interpret_expr)
+    url = os.path.join(MAS_URL_PREFIX, "academic/v1.0/evaluate")
+    query = {
+      "expr": interpret_expr,
+      "attributes": "Id"
+    }
+    data = query_academic_search("get", url, query)
+    return data
+
 
 def get_papers_from_author(author):
     url = os.path.join(MAS_URL_PREFIX, "academic/v1.0/evaluate")
