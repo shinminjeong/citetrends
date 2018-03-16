@@ -5,6 +5,8 @@ MAS_URL_PREFIX = "http://westus.api.cognitive.microsoft.com"
 headers = {
     # Request headers
     'Ocp-Apim-Subscription-Key': 'a27d17cc1a6044f5bb6accf68e10eefa',
+    # 'Ocp-Apim-Subscription-Key': '0b06b868902243f6bba906c6a9ead9c5',
+    # 'Ocp-Apim-Subscription-Key': '7ac0dceea8a845349d46895e242e34b8',
 }
 
 def query_academic_search(type, url, query):
@@ -45,7 +47,6 @@ def get_paperinfo_from_title(paper_title):
     data = query_academic_search("get", url, query)
     return data
 
-
 def get_papers_from_author(author):
     url = os.path.join(MAS_URL_PREFIX, "academic/v1.0/evaluate")
     query = {
@@ -55,6 +56,19 @@ def get_papers_from_author(author):
       "attributes": "prob,Id,Ti,Y,CC,AA.AuN,AA.AuId,RId"
     }
     data = query_academic_search("get", url, query)
+    return data
+
+def get_years_from_papers(paper_ids):
+    url = os.path.join(MAS_URL_PREFIX, "academic/v1.0/graph/search?mode=json")
+    query = {
+      "path": "/paper",
+      "paper": {
+        "type": "Paper",
+        "id": paper_ids,
+        "select": [ "PublishYear" ]
+      }
+    }
+    data = query_academic_search("post", url, query)
     return data
 
 def get_citations_from_papers(paper_ids):
