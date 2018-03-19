@@ -38,9 +38,12 @@ def create_papers_yearmap(papers):
     return result
 
 if __name__ == "__main__":
-    field_name = "deep learning"
+    # field_name = "deep learning"
     # field_name = "compiler"
-    citation = [200, 10000]
+    # field_name = "assembly language"
+    # field_name = "flash memory"
+    field_name = "computer graphics"
+    citation = [300, 1000]
     data = get_papers_from_field_of_study(field_name, citation)
     papers = {p["Id"]:p for p in data["entities"]}
 

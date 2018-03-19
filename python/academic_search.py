@@ -1,12 +1,17 @@
 import os, json, requests
 import http.client, urllib.request, urllib.parse, urllib.error, base64
 
-MAS_URL_PREFIX = "http://westus.api.cognitive.microsoft.com"
+# MAS_URL_PREFIX = "http://westus.api.cognitive.microsoft.com"
+MAS_URL_PREFIX = "https://api.labs.cognitive.microsoft.com"
 headers = {
     # Request headers
-    'Ocp-Apim-Subscription-Key': 'a27d17cc1a6044f5bb6accf68e10eefa',
-    # 'Ocp-Apim-Subscription-Key': '0b06b868902243f6bba906c6a9ead9c5',
+    'Ocp-Apim-Subscription-Key': 'ca91ddafcfc9414cbc0a475f0e49f8a6',
+    # 'Ocp-Apim-Subscription-Key': '3c7521aa53af4044b77a70da0de55a50',
     # 'Ocp-Apim-Subscription-Key': '7ac0dceea8a845349d46895e242e34b8',
+    # "Host": "api.labs.cognitive.microsoft.com",
+    # "Content-Type": "application/json",
+    # "Accept": "application/json",
+    # "User-Agent": "Mozilla/5.0"
 }
 
 def query_academic_search(type, url, query):
