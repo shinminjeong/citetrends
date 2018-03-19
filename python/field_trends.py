@@ -15,12 +15,14 @@ def create_author_yearmap(author_name):
 def create_papers_yearmap(papers):
     paper_ids = list(papers.keys())
     cite_paper_ids = []
+    pub_year_map = {papers[key]["Y"]:[] for key in paper_ids}
     cite_year_map = {papers[key]["Y"]:[] for key in paper_ids}
 
     citations = get_citations_from_papers(paper_ids)
     for res in citations["Results"]:
         pid = res[0]["CellID"]
         pyear = papers[pid]["Y"]
+        pub_year_map[pyear].append(pid)
         cite_year_map[pyear].extend(res[0]["CitationIDs"])
         cite_paper_ids.extend(res[0]["CitationIDs"])
     print("# or papers = {}, # of citation = {}"
@@ -35,7 +37,7 @@ def create_papers_yearmap(papers):
             t_counter = Counter([yearmap[pid] for pid in cite_year_map[pubyear]])
             for citeyear in bins:
                 result[pubyear][citeyear] = t_counter[citeyear]
-    return result
+    return result, pub_year_map
 
 if __name__ == "__main__":
     # field_name = "deep learning"
@@ -48,7 +50,13 @@ if __name__ == "__main__":
     papers = {p["Id"]:p for p in data["entities"]}
 
     print("field yearmap", field_name)
-    result = create_papers_yearmap(papers)
+    result = {}
+    citeyear, pubyear = create_papers_yearmap(papers)
+    for k in citeyear.keys():
+        result[k] = {
+            "pub": len(pubyear[k]) if k in pubyear else 0,
+            "cite": citeyear[k]
+        }
     print(result)
-    with open('{}.txt'.format(field_name), 'w') as outfile:
+    with open('computer_graphics/{}_{}.txt'.format(citation[0], citation[1]), 'w') as outfile:
         json.dump(result, outfile)
