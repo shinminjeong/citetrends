@@ -32,3 +32,15 @@ def query_author_id(id):
         }
     }
     return query_es("paper_info", query)
+
+def query_conf_id(id):
+    query = {
+        "size": 10000,
+        "_source": ["References.JournalId", "References.ConferenceSeriesId", "Year"],
+        "query": {
+            "match": {
+                "ConferenceSeriesId": id
+            }
+        }
+    }
+    return query_es("paper_info", query)
