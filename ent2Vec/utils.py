@@ -1,5 +1,6 @@
 import os, json
 from elasticsearch import Elasticsearch
+from multiprocessing import Pool
 
 ES_HOSTS = "130.56.248.7:9200"
 query_matchall = {
@@ -10,7 +11,7 @@ query_matchall = {
 
 def query_es(index, query=query_matchall):
     es_conn = Elasticsearch(ES_HOSTS)
-    res = es_conn.search(index = index, body=query)
+    res = es_conn.search(index = index, body=query, request_timeout=60)
     return res["hits"]["hits"]
 
 # def get_all_conf_ids():
@@ -21,26 +22,97 @@ def query_es(index, query=query_matchall):
 #     res = query_es("journals")
 #     return [r["_source"]["JournalId"] for r in res]
 
-def query_author_id(id):
-    query = {
-        "size": 1000,
-        "_source": ["References.JournalId", "References.ConferenceSeriesId", "Year"],
-        "query": {
-            "match": {
-                "Authors.AuthorId": id
+def search_papers(id, type):
+    if type == "author":
+        query = {
+            "size": 10000,
+            "_source": ["PaperId"],
+            "query": {
+                "match": {
+                    "AuthorId": id
+                }
             }
         }
-    }
-    return query_es("paper_info", query)
+        pids = [r["_source"]["PaperId"] for r in query_es("paperauthoraffiliations", query)]
+        query = {
+            "size": 10000,
+            "_source": ["_id", "Year"],
+            "query": {
+                "terms": {
+                    "PaperId": pids
+                }
+            }
+        }
+        return query_es("papers", query)
+    if type == "conf":
+        query = {
+            "size": 10000,
+            "_source": ["_id", "Year"],
+            "query": {
+                "match": {
+                    "ConferenceSeriesId": id
+                }
+            }
+        }
+        return query_es("papers", query)
 
-def query_conf_id(id):
+
+def get_conf_from_pids(plist):
     query = {
         "size": 10000,
-        "_source": ["References.JournalId", "References.ConferenceSeriesId", "Year"],
+        "_source": ["ConferenceSeriesId", "JournalId"],
         "query": {
-            "match": {
-                "ConferenceSeriesId": id
+            "terms": {
+                "_id": plist
             }
         }
     }
-    return query_es("paper_info", query)
+    return query_es("papers", query)
+
+def search_pref(plist):
+    refdict = {p:[] for p in plist}
+    query = {
+        "size": 10000,
+        "query": {
+            "terms": {
+                "PaperId": plist
+            }
+        }
+    }
+    reflist = query_es("paperreferences", query)
+    for ref in reflist:
+        refdict[ref["_source"]["PaperId"]].append(ref["_source"]["PaperReferenceId"])
+    return refdict
+
+def get_paper_ref(id, type):
+    res = search_papers(id, type)
+    yearMap = {int(r["_id"]):int(r["_source"]["Year"]) for r in res}
+    paperids = list(yearMap.keys())
+
+    num_threads = 8
+    p = Pool(num_threads)
+    ref_result = p.apply_async(search_pref, [paperids]).get()
+
+    confMap = dict()
+    conf_result = p.map(get_conf_from_pids, ref_result.values())
+    for group in conf_result:
+        for r in group:
+            if "ConferenceSeriesId" in r["_source"]:
+                confMap[int(r["_id"])] = int(r["_source"]["ConferenceSeriesId"])
+            if "JournalId" in r["_source"]:
+                confMap[int(r["_id"])] = int(r["_source"]["JournalId"])
+    """
+    return dictionary
+    {paperid: {"Year": year, "References": [list of venue ids]}}
+    """
+    paper_ref_dict = dict()
+    for p in paperids:
+        paper_ref_dict[p] = {"Year": yearMap[p], "References":[]}
+        for ref in ref_result[p]:
+            if ref in confMap:
+                paper_ref_dict[p]["References"].append(confMap[ref])
+    return paper_ref_dict
+
+
+if __name__ == '__main__':
+    print(get_paper_ref(1120384002, "conf"))
