@@ -1,4 +1,4 @@
-var width = $(window).width(), height = $(window).height()-100;
+var width = $(window).width(), height = $(window).height();
 var legend_margin = 200;
 var draw = SVG('drawing').size(width, height);
 var bbox = [0, 0, 0, 0] // (x_min, x_max, y_min, y_max)
@@ -31,8 +31,8 @@ $.getJSON("http://127.0.0.1:8080/data/"+filename, function( data ) {
     }
 
     glist = Array.from(groups); // list of names
-    var xd = bbox[1]-bbox[0],
-        yd = bbox[3]-bbox[2];
+    var xd = bbox[1]-bbox[0]+10,
+        yd = bbox[3]-bbox[2]+10;
     var xs = 1+(width-legend_margin)/xd, ys = 1+height/yd;
 
     // draw circle for each point
@@ -40,7 +40,7 @@ $.getJSON("http://127.0.0.1:8080/data/"+filename, function( data ) {
       var name = key.split("_");
       var gname = name[0], year = name[1];
       var circle = draw.circle(nsize*2).id(gname)
-          .center(data[key][0]*xs+(width-legend_margin)/2, data[key][1]*ys+height/2)
+          .center(data[key][0]*xs+(width-legend_margin)/2, data[key][1]*ys+height/2+30)
           .fill(colors[glist.indexOf(gname)]);
       every_nodes[gname].push(circle);
     }
@@ -50,7 +50,7 @@ $.getJSON("http://127.0.0.1:8080/data/"+filename, function( data ) {
       var name = key.split("_");
       var gname = name[0], year = name[1];
       var c_text = draw.text(year).id(year).fill("#000")
-          .move(data[key][0]*xs+(width-legend_margin)/2+10, data[key][1]*ys+height/2)
+          .move(data[key][0]*xs+(width-legend_margin)/2+10, data[key][1]*ys+height/2+30)
           .attr("visibility", "hidden");
       every_nodes_t[gname].push(c_text);
     }
