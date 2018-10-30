@@ -39,9 +39,11 @@ $.getJSON("http://127.0.0.1:8080/data/"+filename, function( data ) {
     for (var key in data) {
       var name = key.split("_");
       var gname = name[0], year = name[1];
-      var circle = draw.circle(nsize*2).id(gname)
+      var circle = draw.circle(nsize*2).id(key)
           .center(data[key][0]*xs+(width-legend_margin)/2, data[key][1]*ys+height/2+30)
           .fill(colors[glist.indexOf(gname)]);
+      circle.mouseover(function() { highlight_node(this.node.id) });
+      circle.mouseout(function() { reset_highlight() });
       every_nodes[gname].push(circle);
     }
 
@@ -49,7 +51,7 @@ $.getJSON("http://127.0.0.1:8080/data/"+filename, function( data ) {
     for (var key in data) {
       var name = key.split("_");
       var gname = name[0], year = name[1];
-      var c_text = draw.text(year).id(year).fill("#000")
+      var c_text = draw.text(year).id(key).fill("#000")
           .move(data[key][0]*xs+(width-legend_margin)/2+10, data[key][1]*ys+height/2+30)
           .attr("visibility", "hidden");
       every_nodes_t[gname].push(c_text);
@@ -71,6 +73,16 @@ $.getJSON("http://127.0.0.1:8080/data/"+filename, function( data ) {
     }
 
 });
+
+function highlight_node(nid) {
+  // console.log("highlight_node", nid);
+  dim_every_nodes();
+  var members = SVG.select("#"+nid).members;
+  for (var n in members) {
+    if (members[n].type == "circle") { members[n].attr("r", nsizeb).attr("opacity", 1); }
+    if (members[n].type == "text") { members[n].text(nid).attr("visibility", "visible"); }
+  }
+}
 
 function highlight_group(gname) {
   // console.log("highlight_group", gname);
@@ -98,7 +110,8 @@ function reset_highlight() {
           .fill(colors[glist.indexOf(gname)]);
     }
     for (var e in every_nodes_t[gname]) {
-      every_nodes_t[gname][e].attr("visibility", "hidden");
+      var y = every_nodes_t[gname][e].id();
+      every_nodes_t[gname][e].text(y.split("_")[1]).attr("visibility", "hidden");
     }
   }
 }
