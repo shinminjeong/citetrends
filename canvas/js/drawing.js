@@ -1,7 +1,7 @@
 var width = $(window).width(), height = $(window).height();
 var margin = 5, legend_margin = 200, text_margin = 15;
 var draw = SVG('drawing').size(width, height);
-    draw.rect(width, height).fill("#fff").click(function() { zoom_out() });
+    draw.rect(width, height).fill("#fff").dblclick(function() { zoom_out() });
     draw.viewbox(0,0,width,height);
 var nsize = 6, nsizeb = 10;
 var bbox = [width,-width,height,-height,0,0]; // (x_min, x_max, y_min, y_max, x_center, y_center)
@@ -10,8 +10,10 @@ var colors = ["#065143", "#129490",
   "#A2DDE1", "#FCAB10", "#ff9234", "#fd0054",
   "#0b409c", "#5e227f"]
 var glist = [];
+var yearSet = new Set();
 var every_nodes = {};
 var every_nodes_t = {};
+var every_edges = {};
 var zoomed = false;
 
 var filename = GetURLParameter("input");
@@ -28,8 +30,10 @@ $.getJSON("http://127.0.0.1:8080/data/"+filename, function( data ) {
       // save names of nodes
       var name = key.split("_");
       groups.add(name[0]);
+      yearSet.add(name[1]);
       every_nodes[name[0]] = [];
       every_nodes_t[name[0]] = [];
+      every_edges[name[0]] = [];
     }
     bbox[4] = (bbox[0]+bbox[1])/2;
     bbox[5] = (bbox[2]+bbox[3])/2;
@@ -90,6 +94,7 @@ function zoom_out() {
   if (!zoomed) return;
   zoomed = false;
   reset_highlight();
+  remove_edges();
   draw.animate(100).viewbox(0, 0, width, height);
 }
 
@@ -114,23 +119,36 @@ function zoom_in_node(nid) {
   var gname = nid.split("_")[0];
   var nbox = calculate_bbox(every_nodes[gname]);
   var xd = 50+nbox[1]-nbox[0], yd = 50+nbox[3]-nbox[2];
-  var newwidth = 10, newheight = 10;
+  var newwidth = 100, newheight = 100; // added margin
   if (xd > yd) {
     newwidth += xd, newheight += height*xd/width;
   } else {
     newwidth += width*yd/height, newheight += yd;
   }
-  console.log(draw.bbox());
-  console.log(xd, yd, newwidth, newheight);
-  console.log(nbox);
-  // draw.animate(100).viewbox(nbox[4]-newwidth/2, nbox[5]-newheight/2, nbox[4]+newwidth/2, nbox[5]+newheight/2);
-  draw.animate(100).viewbox(nbox[4]-xd/2, nbox[5]-yd/2, nbox[4]+xd/2, nbox[5]+yd/2);
+
+  draw.animate(100).viewbox({
+    x: nbox[4]-newwidth/2,
+    y: nbox[5]-newheight/2,
+    width: newwidth,
+    height: newheight,
+    zoom: Math.min(width/newwidth, height/newheight)
+  });
 
   for (var e in every_nodes[gname]) {
-    every_nodes[gname][e].attr("r", nsize).attr("opacity", 1)
-        .fill(colors[glist.indexOf(gname)]);
-    every_nodes_t[gname][e].attr("visibility", "visible");
+    var year_n = every_nodes[gname][e].node.id.split("_")[1];
+    if (year_n%5 == 0) {
+      every_nodes[gname][e].attr("r", nsize).attr("opacity", 1)
+          .fill(colors[glist.indexOf(gname)]);
+    } else {
+      every_nodes[gname][e].attr("r", nsize).attr("opacity", 1)
+          .fill("transparent").attr("stroke", colors[glist.indexOf(gname)]);
+    }
+    var year_t = every_nodes_t[gname][e].node.id.split("_")[1];
+    if (year_t%5 == 0) {
+      every_nodes_t[gname][e].attr("visibility", "visible");
+    }
   }
+  draw_edges_group(gname);
 }
 
 function highlight_node(nid) {
@@ -141,6 +159,34 @@ function highlight_node(nid) {
   for (var n in members) {
     if (members[n].type == "circle") { members[n].attr("r", nsizeb).attr("opacity", 1); }
     if (members[n].type == "text") { members[n].text(nid).attr("visibility", "visible"); }
+  }
+}
+
+function remove_edges() {
+  for (var gname in every_nodes) {
+    for (var e in every_edges[gname]) {
+      every_edges[gname][e].remove();
+    }
+  }
+}
+
+function draw_edges_group(gname) {
+  var yearlist = Array.from(yearSet).sort();
+  console.log(yearlist);
+  var prv = null;
+  for (var y in yearlist) {
+    var cur = SVG.get("#"+gname+"_"+yearlist[y]);
+    if (cur) {
+      console.log("#"+gname+"_"+yearlist[y], cur.node.getAttribute("cx"), cur.node.getAttribute("cy"));
+      if (prv) {
+        var path = draw.line(
+                          prv.node.getAttribute("cx"), prv.node.getAttribute("cy"),
+                          cur.node.getAttribute("cx"), cur.node.getAttribute("cy"))
+                        .stroke(colors[glist.indexOf(gname)]);
+        every_edges[gname].push(path);
+      }
+      prv = cur;
+    }
   }
 }
 
@@ -159,6 +205,9 @@ function dim_every_nodes(opct) {
   for (var gname in every_nodes) {
     for (var e in every_nodes[gname]) {
       every_nodes[gname][e].attr("opacity", opct);
+    }
+    for (var e in every_edges[gname]) {
+      every_edges[gname][e].attr("opacity", opct);
     }
   }
 }
