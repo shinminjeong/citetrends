@@ -172,17 +172,14 @@ function remove_edges() {
 
 function draw_edges_group(gname) {
   var yearlist = Array.from(yearSet).sort();
-  console.log(yearlist);
   var prv = null;
   for (var y in yearlist) {
     var cur = SVG.get("#"+gname+"_"+yearlist[y]);
     if (cur) {
-      console.log("#"+gname+"_"+yearlist[y], cur.node.getAttribute("cx"), cur.node.getAttribute("cy"));
       if (prv) {
-        var path = draw.line(
-                          prv.node.getAttribute("cx"), prv.node.getAttribute("cy"),
+        var path = draw.line(prv.node.getAttribute("cx"), prv.node.getAttribute("cy"),
                           cur.node.getAttribute("cx"), cur.node.getAttribute("cy"))
-                        .stroke(colors[glist.indexOf(gname)]);
+                       .stroke(colors[glist.indexOf(gname)]);
         every_edges[gname].push(path);
       }
       prv = cur;
