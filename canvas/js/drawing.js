@@ -54,7 +54,7 @@ $.getJSON("http://127.0.0.1:8080/data/"+filename, function( data ) {
           .attr("ox", data[key][0]).attr("oy", data[key][1])
           .attr("px", newx).attr("py", newy)
           .center(newx, newy)
-          .fill(colors[glist.indexOf(gname)]);
+          .fill(colors[glist.indexOf(gname)%colors.length]);
       circle.mouseover(function() { highlight_node(this.node.id) });
       circle.mouseout(function() { reset_highlight() });
       circle.click(function() { zoom_in_node(this.node.id) });
@@ -76,7 +76,7 @@ $.getJSON("http://127.0.0.1:8080/data/"+filename, function( data ) {
     // draw legends
     for (var gid in glist) {
       var legend_rect = draw.rect(20,20).id(gid)
-          .fill(colors[gid]).move(width-legend_margin, gid*25+20);
+          .fill(colors[gid%colors.length]).move(width-legend_margin, gid*25+20);
       var legend_text = draw.text(glist[gid]).id(gid)
           .move(width-legend_margin+30, gid*25+20)
           .fill("#000");
@@ -138,10 +138,10 @@ function zoom_in_node(nid) {
     var year_n = every_nodes[gname][e].node.id.split("_")[1];
     if (year_n%5 == 0) {
       every_nodes[gname][e].attr("r", nsize).attr("opacity", 1)
-          .fill(colors[glist.indexOf(gname)]);
+          .fill(colors[glist.indexOf(gname)%colors.length]);
     } else {
       every_nodes[gname][e].attr("r", nsize).attr("opacity", 1)
-          .fill("transparent").attr("stroke", colors[glist.indexOf(gname)]);
+          .fill("transparent").attr("stroke", colors[glist.indexOf(gname)%colors.length]);
     }
     var year_t = every_nodes_t[gname][e].node.id.split("_")[1];
     if (year_t%5 == 0) {
@@ -179,7 +179,7 @@ function draw_edges_group(gname) {
       if (prv) {
         var path = draw.line(prv.node.getAttribute("cx"), prv.node.getAttribute("cy"),
                           cur.node.getAttribute("cx"), cur.node.getAttribute("cy"))
-                       .stroke(colors[glist.indexOf(gname)]);
+                       .stroke(colors[glist.indexOf(gname)%colors.length]);
         every_edges[gname].push(path);
       }
       prv = cur;
@@ -193,7 +193,7 @@ function highlight_group(gname) {
   dim_every_nodes(0.6);
   for (var e in every_nodes[gname]) {
     every_nodes[gname][e].attr("r", nsizeb).attr("opacity", 1)
-        .fill(colors[glist.indexOf(gname)]);
+        .fill(colors[glist.indexOf(gname)%colors.length]);
     every_nodes_t[gname][e].attr("visibility", "visible");
   }
 }
@@ -218,7 +218,7 @@ function reset_highlight() {
       every_nodes[gname][e].attr("r", nsize)
           .attr("cx", newx).attr("cy", newy)
           .attr("opacity", 1)
-          .fill(colors[glist.indexOf(gname)]);
+          .fill(colors[glist.indexOf(gname)%colors.length]);
       every_nodes_t[gname][e].text(tmp.id.split("_")[1]).attr("visibility", "hidden")
           .attr("x", newx+text_margin).attr("y", newy)
     }

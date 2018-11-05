@@ -18,20 +18,16 @@ query_matchall = {
 def query_es(index, query=query_matchall):
     es_conn = Elasticsearch(ES_HOSTS)
     res = es_conn.search(index = index, body=query, request_timeout=300)
-    return res["hits"]["hits"]
+    return res["hits"]
 
-# def get_all_conf_ids():
-#     res = query_es("conferenceseries")
-#     return [r["_source"]["ConferenceSeriesId"] for r in res]
-#
-# def get_all_journal_ids():
-#     res = query_es("journals")
-#     return [r["_source"]["JournalId"] for r in res]
-
-def search_papers(id, type):
-    if type == "author":
+def search_paper_author(id):
+    result = []
+    count = 0
+    total = size = 1000
+    while count < total:
         query = {
-            "size": 10000,
+            "from": count,
+            "size": size,
             "_source": ["PaperId"],
             "query": {
                 "match": {
@@ -39,28 +35,50 @@ def search_papers(id, type):
                 }
             }
         }
-        pids = [r["_source"]["PaperId"] for r in query_es("paperauthoraffiliations", query)]
+        resauthors = query_es("paperauthoraffiliations", query)
+        total = resauthors["total"]
+        pids = [r["_source"]["PaperId"] for r in resauthors["hits"]]
         query = {
             "size": 10000,
-            "_source": ["_id", "Year"],
+            "_source": ["_id", "Year", "OriginalTitle"],
             "query": {
                 "terms": {
                     "PaperId": pids
                 }
             }
         }
-        return query_es("papers", query)
-    if type == "conf":
+        count += size
+        result.extend(query_es("papers", query)["hits"])
+    return result
+
+def search_paper_conf(id):
+    result = []
+    count = 0
+    total = size = 1000
+    while count < total:
         query = {
-            "size": 10000,
-            "_source": ["_id", "Year"],
+            "from": count,
+            "size": size,
+            "_source": ["_id", "Year", "OriginalTitle"],
             "query": {
                 "match": {
                     "ConferenceSeriesId": id
                 }
             }
         }
-        return query_es("papers", query)
+        resconf = query_es("papers", query)
+        total = resconf["total"]
+        result.extend(resconf["hits"])
+        count += size
+    print(len(result))
+    return result
+
+
+def search_papers(id, type):
+    if type == "author":
+        return search_paper_author(id)
+    if type == "conf":
+        return search_paper_conf(id)
 
 
 def get_conf_from_pids(plist):
@@ -73,7 +91,7 @@ def get_conf_from_pids(plist):
             }
         }
     }
-    return query_es("papers", query)
+    return query_es("papers", query)["hits"]
 
 
 def search_pref_indv(paper):
@@ -86,7 +104,7 @@ def search_pref_indv(paper):
             }
         }
     }
-    reflist = query_es("paperreferences", query)
+    reflist = query_es("paperreferences", query)["hits"]
     for ref in reflist:
         refdict[ref["_source"]["PaperId"]].append(ref["_source"]["PaperReferenceId"])
     return refdict
@@ -101,7 +119,7 @@ def search_pref(plist):
             }
         }
     }
-    reflist = query_es("paperreferences", query)
+    reflist = query_es("paperreferences", query)["hits"]
     for ref in reflist:
         refdict[ref["_source"]["PaperId"]].append(ref["_source"]["PaperReferenceId"])
     return refdict
@@ -109,6 +127,7 @@ def search_pref(plist):
 def get_paper_ref(id, type):
     res = search_papers(id, type)
     yearMap = {int(r["_id"]):int(r["_source"]["Year"]) for r in res}
+    titleMap = {int(r["_id"]):r["_source"]["OriginalTitle"] for r in res}
     paperids = list(yearMap.keys())
 
     num_threads = 8
@@ -125,11 +144,11 @@ def get_paper_ref(id, type):
                 confMap[int(r["_id"])] = int(r["_source"]["JournalId"])
     """
     return dictionary
-    {paperid: {"Year": year, "References": [list of venue ids]}}
+    {paperid: {"Year": year, "Title": title, "References": [list of venue ids]}}
     """
     paper_ref_dict = dict()
     for p in paperids:
-        paper_ref_dict[p] = {"Year": yearMap[p], "References":[]}
+        paper_ref_dict[p] = {"Year": yearMap[p], "Title": titleMap[p], "References":[]}
         for ref in ref_result[p]:
             if ref in confMap:
                 paper_ref_dict[p]["References"].append(confMap[ref])
@@ -138,6 +157,10 @@ def get_paper_ref(id, type):
 
 def save_as_file(filename, dictdata):
     with open("../data/{}.json".format(filename), "w") as outfile:
+        json.dump(dictdata, outfile)
+
+def save_plot_result(filename, dictdata):
+    with open("../canvas/data/{}.json".format(filename), "w") as outfile:
         json.dump(dictdata, outfile)
 
 
@@ -186,6 +209,8 @@ name_id_pairs = {
     "ICML": {"id": 1180662882, "type":"conf"},
     "NIPS": {"id": 1127325140, "type":"conf"},
     "OOPSLA": {"id": 1138732554, "type":"conf"},
+    "WWW": {"id": 1135342153, "type":"conf"},
+    "AAAI": {"id": 1184914352, "type":"conf"},
 }
 
 def generate_data():
@@ -238,6 +263,7 @@ def reduce_vec_tsne(vec, p):
 
 if __name__ == '__main__':
     # generate_data()
+
     data = generate_bov()
 
     bag_of_venues = set()
@@ -251,11 +277,12 @@ if __name__ == '__main__':
     number_of_venues = len(sorted_list_bov)
 
     ## generate bov for each entity
-    # vec = {}
-    # avg_vec = {}
-    # for name, y_venues in data.items():
-    #     vec[name] = get_vector(name, sorted_list_bov, aggr_venues(y_venues))
-    #     avg_vec[name] = get_vector(name, sorted_list_bov, aggr_venues(y_venues), True)
+    vec = {}
+    avg_vec = {}
+    print(data.keys())
+    for name, y_venues in data.items():
+        vec[name] = get_vector(name, sorted_list_bov, aggr_venues(y_venues))
+        avg_vec[name] = get_vector(name, sorted_list_bov, aggr_venues(y_venues), True)
     # print_cos_similarity(vec)
     # print(reduce_vec_dim(vec))
 
@@ -265,12 +292,12 @@ if __name__ == '__main__':
         for y, ref in y_venues.items():
             vec["{}_{}".format(name, y)] = get_vector(name, sorted_list_bov, ref)
     # print_cos_similarity(vec)
-    # reduce_vec = reduce_vec_pca(vec)
+    reduce_vec = reduce_vec_pca(vec)
     # print(reduce_vec)
-    # save_as_file("pca_reduce_vec", reduce_vec)
+    save_plot_result("pca_vec", reduce_vec)
 
     for i in [1,2,3]:
         for p in [5, 10, 20, 40, 80]:
             reduce_t_vec = reduce_vec_tsne(vec, p)
             # print(reduce_vec)
-            save_as_file("tsne_vec_{}_{}".format(i, p), reduce_t_vec)
+            save_plot_result("tsne_vec_{}_{}".format(i, p), reduce_t_vec)
