@@ -35,7 +35,10 @@ $.getJSON("http://127.0.0.1:8080/data/indv_papers/"+filename, function( data ) {
       bbox[3] = Math.max(bbox[3], data[key][1]+margin)
       // save names of nodes
       var name = key.split("_");
-      var gname = name[0]+"-"+name[1], year = name[2];
+      // var gname = name[0]+"-"+name[1];
+      var gname = name[0];
+      var year = name[1];
+      var paperid = name[2];
       groups.add(gname);
       yearSet.add(year);
       every_nodes[gname] = [];
@@ -53,7 +56,10 @@ $.getJSON("http://127.0.0.1:8080/data/indv_papers/"+filename, function( data ) {
     // draw circle for each point
     for (var key in data) {
       var name = key.split("_");
-      var gname = name[0]+"-"+name[1], year = name[2];
+      // var gname = name[0]+"-"+name[1];
+      var gname = name[0];
+      var year = name[1];
+      var paperid = name[2];
       var newx = (data[key][0]-bbox[4])*xs+(width-legend_margin)/2,
           newy = (data[key][1]-bbox[5])*ys+height/2;
       // console.log(data[key][0], data[key][1], newx, newy);
@@ -71,10 +77,15 @@ $.getJSON("http://127.0.0.1:8080/data/indv_papers/"+filename, function( data ) {
     // draw year for each point
     for (var key in data) {
       var name = key.split("_");
-      var gname = name[0]+"-"+name[1], year = name[2];
+      // var gname = name[0]+"-"+name[1];
+      var gname = name[0];
+      var year = name[1];
+      var paperid = name[2];
       var newx = (data[key][0]-bbox[4])*xs+(width-legend_margin)/2,
           newy = (data[key][1]-bbox[5])*ys+height/2;
-      var c_text = draw_text.text(year).id(key).fill("#000")
+      var label = "";
+      if (paperid == "average") label = year;
+      var c_text = draw_text.text(label).id(key).fill("#000")
           .attr("x", newx+text_margin).attr("y", newy)
           .attr("stroke", 1)
           .attr("stroke-color", "white")
@@ -127,7 +138,8 @@ function zoom_in_node(nid) {
   zoomed = true;
   dim_every_nodes(0.2);
   var name = nid.split("_");
-  var gname = name[0]+"-"+name[1];
+  // var gname = name[0]+"-"+name[1];
+  var gname = name[0];
 
   // calculate bbox region to zome in
   var nbox = calculate_bbox(every_nodes[gname]);
@@ -159,17 +171,18 @@ function zoom_in_node(nid) {
           .fill("white").attr("stroke", colors[glist.indexOf(gname)%colors.length]);
     }
     var year_t = every_nodes_t[gname][e].node.id.split("_")[1];
-    if (year_t%5 == 0) {
+    // if (year_t%5 == 0) {
       every_nodes_t[gname][e].attr("visibility", "visible");
-    }
+    // }
   }
   draw_edges_group(gname);
 }
 
+var mouseover_while_zoomed;
 function highlight_node(nid) {
-  if (zoomed) return;
   // console.log("highlight_node", nid);
-  dim_every_nodes(0.6);
+  if (!zoomed) dim_every_nodes(0.6);
+  mouseover_while_zoomed = nid;
   var members = SVG.select("#"+nid).members;
   for (var n in members) {
     if (members[n].type == "circle") { members[n].attr("r", nsizeb).attr("opacity", 1); }
@@ -189,7 +202,7 @@ function draw_edges_group(gname) {
   var yearlist = Array.from(yearSet).sort();
   var prv = null;
   for (var y in yearlist) {
-    var cur = SVG.get("#"+gname+"_"+yearlist[y]);
+    var cur = SVG.get("#"+gname+"_"+yearlist[y]+"_average");
     if (cur) {
       if (prv) {
         var path = draw_edge.line(prv.node.getAttribute("cx"), prv.node.getAttribute("cy"),
@@ -205,7 +218,7 @@ function draw_edges_group(gname) {
 function highlight_group(gname) {
   if (zoomed) return;
   // console.log("highlight_group", gname);
-  dim_every_nodes(0.6);
+  dim_every_nodes(0.3);
   for (var e in every_nodes[gname]) {
     every_nodes[gname][e].attr("r", nsizeb).attr("opacity", 1)
         .fill(colors[glist.indexOf(gname)%colors.length]);
@@ -225,7 +238,15 @@ function dim_every_nodes(opct) {
 }
 
 function reset_highlight() {
-  if (zoomed) return;
+  if (zoomed) {
+    // console.log("mouseover_while_zoomed", mouseover_while_zoomed)
+    var members = SVG.select("#"+mouseover_while_zoomed).members;
+    for (var n in members) {
+      if (members[n].type == "circle") { members[n].attr("r", nsize).attr("opacity", 0.6); }
+      if (members[n].type == "text") { members[n].text(mouseover_while_zoomed).attr("visibility", "hidden"); }
+    }
+    return;
+  }
   for (var gname in every_nodes) {
     for (var e in every_nodes[gname]) {
       var tmp = every_nodes[gname][e].node;
@@ -234,7 +255,10 @@ function reset_highlight() {
           .attr("cx", newx).attr("cy", newy)
           .attr("opacity", 1)
           .fill(colors[glist.indexOf(gname)%colors.length]);
-      every_nodes_t[gname][e].text(tmp.id.split("_")[2]).attr("visibility", "hidden")
+      var name = tmp.id.split("_");
+      var label = "";
+      if (name[2] == "average") label = name[1];
+      every_nodes_t[gname][e].text(label).attr("visibility", "hidden")
           .attr("x", newx+text_margin).attr("y", newy)
     }
   }

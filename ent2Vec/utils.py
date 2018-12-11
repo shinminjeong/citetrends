@@ -199,24 +199,24 @@ def get_vector(cname, bov, author_venue, year=0, norm=False):
     return res_arr
 
 name_id_pairs = {
-    # "steve_blackburn": {"id": 2146610949, "type":"author"},
-    # "kathryn_mckinley": {"id": 2115847858, "type":"author"},
-    # "james_bornholt": {"id": 2026265091, "type":"author"},
-    # "julian_dolby": {"id": 2780161863, "type":"author"},
-    # "perry_cheng": {"id": 2140441920, "type":"author"},
-    # "julian_mcauley": {"id": 2041520510, "type":"author"},
+    # "steve-blackburn": {"id": 2146610949, "type":"author", "numpaper":{}},
+    # "antony-l-hosking": {"id": 732573042, "type":"author", "numpaper":{}},
+    # "kathryn-mckinley": {"id": 2115847858, "type":"author", "numpaper":{}},
+    "cheng-soon-ong": {"id": 2609987651, "type":"author", "numpaper":{}},
+    "robert-c-williamson": {"id": 2122328552, "type":"author", "numpaper":{}},
+    "alexander-j-smola": {"id": 1972291593, "type":"author", "numpaper":{}},
     "ICWSM": {"id": 1124713781, "type":"conf", "numpaper":{}},
-    "POPL": {"id": 1160032607, "type":"conf", "numpaper":{}},
-    "PLDI": {"id": 1127352206, "type":"conf", "numpaper":{}},
+    # "POPL": {"id": 1160032607, "type":"conf", "numpaper":{}},
+    # "PLDI": {"id": 1127352206, "type":"conf", "numpaper":{}},
     "WSDM": {"id": 1120384002, "type":"conf", "numpaper":{}},
     "CIKM": {"id": 1194094125, "type":"conf", "numpaper":{}},
-    "ISCA": {"id": 1131341566, "type":"conf", "numpaper":{}},
-    "MICRO": {"id": 1150919317, "type":"conf", "numpaper":{}},
-    "ASPLOS": {"id": 1174091362, "type":"conf", "numpaper":{}},
-    "OSDI": {"id": 1185109434, "type":"conf", "numpaper":{}},
+    # "ISCA": {"id": 1131341566, "type":"conf", "numpaper":{}},
+    # "MICRO": {"id": 1150919317, "type":"conf", "numpaper":{}},
+    # "ASPLOS": {"id": 1174091362, "type":"conf", "numpaper":{}},
+    # "OSDI": {"id": 1185109434, "type":"conf", "numpaper":{}},
     "ICML": {"id": 1180662882, "type":"conf", "numpaper":{}},
     "NIPS": {"id": 1127325140, "type":"conf", "numpaper":{}},
-    "OOPSLA": {"id": 1138732554, "type":"conf", "numpaper":{}},
+    # "OOPSLA": {"id": 1138732554, "type":"conf", "numpaper":{}},
     "WWW": {"id": 1135342153, "type":"conf", "numpaper":{}},
     "AAAI": {"id": 1184914352, "type":"conf", "numpaper":{}},
 }
@@ -291,9 +291,10 @@ def generate_year_trends_plots():
     vec = {}
     for name, y_venues in data.items():
         for y, ref in y_venues.items():
+            # vec["{}_{}".format(name, y)] = get_vector(name, sorted_list_bov, ref, year=0, norm=True)
             vec["{}_{}".format(name, y)] = get_vector(name, sorted_list_bov, ref, year=y, norm=True)
     # print_cos_similarity(vec)
-    reduce_and_save(vec, number_of_venues, "year")
+    reduce_and_save(vec, number_of_venues, "ml")
 
 
 def reduce_and_save(vec, number_of_venues, tag):
@@ -346,10 +347,10 @@ def generate_indv_paper_plots():
             vec["{}_{}_average".format(cname, y)] = get_vector(cname, sorted_list_bov, ref, year=y, norm=True)
 
     # print(vec)
-    reduce_and_save(vec, number_of_venues, "indv")
+    reduce_and_save(vec, number_of_venues, "indv_ml")
 
 
 if __name__ == '__main__':
     # download_data_save_as_json()
-    generate_year_trends_plots()
-    # generate_indv_paper_plots()
+    # generate_year_trends_plots()
+    generate_indv_paper_plots()
