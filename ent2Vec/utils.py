@@ -190,7 +190,7 @@ def aggr_venues(data):
 
 def get_vector(cname, bov, author_venue, year=0, norm=False):
     c = Counter(author_venue)
-    author_arr = [[float(c[b]) for b in bov]]
+    author_arr = [float(c[b]) for b in bov]
     res_arr = np.array(author_arr)
     if year != 0:
         res_arr /= name_id_pairs[cname]["numpaper"][year]
@@ -202,21 +202,21 @@ name_id_pairs = {
     # "steve-blackburn": {"id": 2146610949, "type":"author", "numpaper":{}},
     # "antony-l-hosking": {"id": 732573042, "type":"author", "numpaper":{}},
     # "kathryn-mckinley": {"id": 2115847858, "type":"author", "numpaper":{}},
-    "cheng-soon-ong": {"id": 2609987651, "type":"author", "numpaper":{}},
-    "robert-c-williamson": {"id": 2122328552, "type":"author", "numpaper":{}},
-    "alexander-j-smola": {"id": 1972291593, "type":"author", "numpaper":{}},
-    "ICWSM": {"id": 1124713781, "type":"conf", "numpaper":{}},
-    # "POPL": {"id": 1160032607, "type":"conf", "numpaper":{}},
-    # "PLDI": {"id": 1127352206, "type":"conf", "numpaper":{}},
-    "WSDM": {"id": 1120384002, "type":"conf", "numpaper":{}},
-    "CIKM": {"id": 1194094125, "type":"conf", "numpaper":{}},
-    # "ISCA": {"id": 1131341566, "type":"conf", "numpaper":{}},
-    # "MICRO": {"id": 1150919317, "type":"conf", "numpaper":{}},
-    # "ASPLOS": {"id": 1174091362, "type":"conf", "numpaper":{}},
-    # "OSDI": {"id": 1185109434, "type":"conf", "numpaper":{}},
+    # "cheng-soon-ong": {"id": 2609987651, "type":"author", "numpaper":{}},
+    # "robert-c-williamson": {"id": 2122328552, "type":"author", "numpaper":{}},
+    # "alexander-j-smola": {"id": 1972291593, "type":"author", "numpaper":{}},
+    "POPL": {"id": 1160032607, "type":"conf", "numpaper":{}},
+    "PLDI": {"id": 1127352206, "type":"conf", "numpaper":{}},
+    "OOPSLA": {"id": 1138732554, "type":"conf", "numpaper":{}},
+    "ISCA": {"id": 1131341566, "type":"conf", "numpaper":{}},
+    "MICRO": {"id": 1150919317, "type":"conf", "numpaper":{}},
+    "ASPLOS": {"id": 1174091362, "type":"conf", "numpaper":{}},
+    "OSDI": {"id": 1185109434, "type":"conf", "numpaper":{}},
     "ICML": {"id": 1180662882, "type":"conf", "numpaper":{}},
     "NIPS": {"id": 1127325140, "type":"conf", "numpaper":{}},
-    # "OOPSLA": {"id": 1138732554, "type":"conf", "numpaper":{}},
+    "WSDM": {"id": 1120384002, "type":"conf", "numpaper":{}},
+    "CIKM": {"id": 1194094125, "type":"conf", "numpaper":{}},
+    "ICWSM": {"id": 1124713781, "type":"conf", "numpaper":{}},
     "WWW": {"id": 1135342153, "type":"conf", "numpaper":{}},
     "AAAI": {"id": 1184914352, "type":"conf", "numpaper":{}},
 }
