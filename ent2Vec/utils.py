@@ -188,14 +188,14 @@ def aggr_venues(data):
         venues.extend(ref)
     return venues
 
-def get_vector(cname, bov, author_venue, year=0, norm=False):
+def get_vector(cname, bov, author_venue, year=0):
     c = Counter(author_venue)
     author_arr = [float(c[b]) for b in bov]
     res_arr = np.array(author_arr)
     if year != 0:
         res_arr /= name_id_pairs[cname]["numpaper"][year]
-    if norm:
-        res_arr /= name_id_pairs[cname]["totalpaper"]
+    # if norm:
+    #     res_arr /= name_id_pairs[cname]["totalpaper"]
     return res_arr
 
 name_id_pairs = {
@@ -292,9 +292,9 @@ def generate_year_trends_plots():
     for name, y_venues in data.items():
         for y, ref in y_venues.items():
             # vec["{}_{}".format(name, y)] = get_vector(name, sorted_list_bov, ref, year=0, norm=True)
-            vec["{}_{}".format(name, y)] = get_vector(name, sorted_list_bov, ref, year=y, norm=True)
+            vec["{}_{}".format(name, y)] = get_vector(name, sorted_list_bov, ref, year=y)
     # print_cos_similarity(vec)
-    reduce_and_save(vec, number_of_venues, "ml")
+    reduce_and_save(vec, number_of_venues, "conf")
 
 
 def reduce_and_save(vec, number_of_venues, tag):
@@ -302,11 +302,12 @@ def reduce_and_save(vec, number_of_venues, tag):
     # print(reduce_vec)
     save_plot_result("pca_{}".format(tag), reduce_vec)
 
-    for i in [1,2,3]:
-        for p in [5, 10, 20, 40, 80]:
-            reduce_t_vec = reduce_vec_tsne(vec, p, number_of_venues)
-            # print(reduce_vec)
-            save_plot_result("tsne_{}_{}_{}".format(tag, i, p), reduce_t_vec)
+    # for i in [1,2,3]:
+    for p in [5, 10, 20, 40, 80]:
+        reduce_t_vec = reduce_vec_tsne(vec, p, number_of_venues)
+        # print(reduce_vec)
+        # save_plot_result("tsne_{}_{}_{}".format(tag, i, p), reduce_t_vec)
+        save_plot_result("tsne_{}_{}".format(tag, p), reduce_t_vec)
 
 
 def generate_bov_paper():
@@ -338,16 +339,16 @@ def generate_indv_paper_plots():
             continue
         cname, y, pid = paper.split("_")
         # print(cname, y, pid, len(ref_venuew))
-        vec[paper] = get_vector(cname, sorted_list_bov, ref_venuew, norm=True)
+        vec[paper] = get_vector(cname, sorted_list_bov, ref_venuew)
 
     ## generate average vectors by years
     year_data = generate_bov_year()
     for cname, y_venues in year_data.items():
         for y, ref in y_venues.items():
-            vec["{}_{}_average".format(cname, y)] = get_vector(cname, sorted_list_bov, ref, year=y, norm=True)
+            vec["{}_{}_average".format(cname, y)] = get_vector(cname, sorted_list_bov, ref, year=y)
 
     # print(vec)
-    reduce_and_save(vec, number_of_venues, "indv_ml")
+    reduce_and_save(vec, number_of_venues, "conf")
 
 
 if __name__ == '__main__':
