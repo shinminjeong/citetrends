@@ -202,16 +202,16 @@ name_id_pairs = {
     # "steve-blackburn": {"id": 2146610949, "type":"author", "numpaper":{}},
     # "antony-l-hosking": {"id": 732573042, "type":"author", "numpaper":{}},
     # "kathryn-mckinley": {"id": 2115847858, "type":"author", "numpaper":{}},
-    # "cheng-soon-ong": {"id": 2609987651, "type":"author", "numpaper":{}},
-    # "robert-c-williamson": {"id": 2122328552, "type":"author", "numpaper":{}},
-    # "alexander-j-smola": {"id": 1972291593, "type":"author", "numpaper":{}},
-    "POPL": {"id": 1160032607, "type":"conf", "numpaper":{}},
-    "PLDI": {"id": 1127352206, "type":"conf", "numpaper":{}},
-    "OOPSLA": {"id": 1138732554, "type":"conf", "numpaper":{}},
-    "ISCA": {"id": 1131341566, "type":"conf", "numpaper":{}},
-    "MICRO": {"id": 1150919317, "type":"conf", "numpaper":{}},
-    "ASPLOS": {"id": 1174091362, "type":"conf", "numpaper":{}},
-    "OSDI": {"id": 1185109434, "type":"conf", "numpaper":{}},
+    "cheng-soon-ong": {"id": 2609987651, "type":"author", "numpaper":{}},
+    "robert-c-williamson": {"id": 2122328552, "type":"author", "numpaper":{}},
+    "alexander-j-smola": {"id": 1972291593, "type":"author", "numpaper":{}},
+    # "POPL": {"id": 1160032607, "type":"conf", "numpaper":{}},
+    # "PLDI": {"id": 1127352206, "type":"conf", "numpaper":{}},
+    # "OOPSLA": {"id": 1138732554, "type":"conf", "numpaper":{}},
+    # "ISCA": {"id": 1131341566, "type":"conf", "numpaper":{}},
+    # "MICRO": {"id": 1150919317, "type":"conf", "numpaper":{}},
+    # "ASPLOS": {"id": 1174091362, "type":"conf", "numpaper":{}},
+    # "OSDI": {"id": 1185109434, "type":"conf", "numpaper":{}},
     "ICML": {"id": 1180662882, "type":"conf", "numpaper":{}},
     "NIPS": {"id": 1127325140, "type":"conf", "numpaper":{}},
     "WSDM": {"id": 1120384002, "type":"conf", "numpaper":{}},
@@ -348,7 +348,7 @@ def generate_indv_paper_plots():
             vec["{}_{}_average".format(cname, y)] = get_vector(cname, sorted_list_bov, ref, year=y)
 
     # print(vec)
-    reduce_and_save(vec, number_of_venues, "conf")
+    reduce_and_save(vec, number_of_venues, "ml")
 
 
 if __name__ == '__main__':
