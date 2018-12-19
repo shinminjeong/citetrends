@@ -20,6 +20,15 @@ def query_es(index, query=query_matchall):
     res = es_conn.search(index = index, body=query, request_timeout=300)
     return res["hits"]
 
+def get_conf_name(id):
+    es_conn = Elasticsearch(ES_HOSTS)
+    exits = es_conn.exists(index = "conferenceseries", doc_type="doc", id=id)
+    if exits:
+        res = es_conn.get(index = "conferenceseries", doc_type="doc", id=id)
+    else:
+        res = es_conn.get(index = "journals", doc_type="doc", id=id)
+    return res["_source"]["NormalizedName"]
+
 def search_paper_author(id):
     result = []
     count = 0
@@ -202,16 +211,16 @@ name_id_pairs = {
     # "steve-blackburn": {"id": 2146610949, "type":"author", "numpaper":{}},
     # "antony-l-hosking": {"id": 732573042, "type":"author", "numpaper":{}},
     # "kathryn-mckinley": {"id": 2115847858, "type":"author", "numpaper":{}},
-    "cheng-soon-ong": {"id": 2609987651, "type":"author", "numpaper":{}},
-    "robert-c-williamson": {"id": 2122328552, "type":"author", "numpaper":{}},
-    "alexander-j-smola": {"id": 1972291593, "type":"author", "numpaper":{}},
-    # "POPL": {"id": 1160032607, "type":"conf", "numpaper":{}},
-    # "PLDI": {"id": 1127352206, "type":"conf", "numpaper":{}},
-    # "OOPSLA": {"id": 1138732554, "type":"conf", "numpaper":{}},
-    # "ISCA": {"id": 1131341566, "type":"conf", "numpaper":{}},
-    # "MICRO": {"id": 1150919317, "type":"conf", "numpaper":{}},
-    # "ASPLOS": {"id": 1174091362, "type":"conf", "numpaper":{}},
-    # "OSDI": {"id": 1185109434, "type":"conf", "numpaper":{}},
+    # "cheng-soon-ong": {"id": 2609987651, "type":"author", "numpaper":{}},
+    # "robert-c-williamson": {"id": 2122328552, "type":"author", "numpaper":{}},
+    # "alexander-j-smola": {"id": 1972291593, "type":"author", "numpaper":{}},
+    "POPL": {"id": 1160032607, "type":"conf", "numpaper":{}},
+    "PLDI": {"id": 1127352206, "type":"conf", "numpaper":{}},
+    "OOPSLA": {"id": 1138732554, "type":"conf", "numpaper":{}},
+    "ISCA": {"id": 1131341566, "type":"conf", "numpaper":{}},
+    "MICRO": {"id": 1150919317, "type":"conf", "numpaper":{}},
+    "ASPLOS": {"id": 1174091362, "type":"conf", "numpaper":{}},
+    "OSDI": {"id": 1185109434, "type":"conf", "numpaper":{}},
     "ICML": {"id": 1180662882, "type":"conf", "numpaper":{}},
     "NIPS": {"id": 1127325140, "type":"conf", "numpaper":{}},
     "WSDM": {"id": 1120384002, "type":"conf", "numpaper":{}},
@@ -272,6 +281,11 @@ def reduce_vec_tsne(vec, p, number_of_venues):
 def download_data_save_as_json():
     return generate_data()
 
+
+def generate_one_hot_vec(sorted_list_bov, ref_id):
+    vec = [1 if b==ref_id else 0 for b in sorted_list_bov]
+    return vec
+
 def generate_year_trends_plots():
     data = generate_bov_year()
 
@@ -291,10 +305,13 @@ def generate_year_trends_plots():
     vec = {}
     for name, y_venues in data.items():
         for y, ref in y_venues.items():
-            # vec["{}_{}".format(name, y)] = get_vector(name, sorted_list_bov, ref, year=0, norm=True)
+            # vec["{}_{}".format(name, y)] = get_vector(name, sorted_list_bov, ref, year=0)
             vec["{}_{}".format(name, y)] = get_vector(name, sorted_list_bov, ref, year=y)
+
+    for name in ["ICML","NIPS","WSDM","CIKM","ICWSM","WWW","AAAI"]:
+        vec["{}_Anchor".format(name)] = generate_one_hot_vec(sorted_list_bov, name_id_pairs[name]["id"])
     # print_cos_similarity(vec)
-    reduce_and_save(vec, number_of_venues, "conf")
+    reduce_and_save(vec, number_of_venues, "ml_anchor")
 
 
 def reduce_and_save(vec, number_of_venues, tag):
@@ -348,10 +365,10 @@ def generate_indv_paper_plots():
             vec["{}_{}_average".format(cname, y)] = get_vector(cname, sorted_list_bov, ref, year=y)
 
     # print(vec)
-    reduce_and_save(vec, number_of_venues, "ml")
+    reduce_and_save(vec, number_of_venues, "ppl")
 
 
 if __name__ == '__main__':
     # download_data_save_as_json()
-    # generate_year_trends_plots()
-    generate_indv_paper_plots()
+    generate_year_trends_plots()
+    # generate_indv_paper_plots()
