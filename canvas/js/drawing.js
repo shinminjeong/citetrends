@@ -25,8 +25,7 @@ var zoomed = false;
 var filename = GetURLParameter("input");
 console.log(filename)
 
-// $.getJSON("http://127.0.0.1:8080/data/conf_trends/"+filename, function( data ) {
-$.getJSON("http://127.0.0.1:8080/data/"+filename, function( data ) {
+$.getJSON("http://127.0.0.1:8080/data/conf/"+filename, function( data ) {
     var groups = new Set();
     for (var key in data) {
       // calculating boundary box

@@ -1,7 +1,8 @@
 var width = $(window).width(), height = $(window).height();
 var margin = 5, legend_margin = 200, text_margin = 15;
 var draw = SVG('papers').size(width, height);
-    draw.rect(width, height).fill("#fff").dblclick(function() { zoom_out() });
+    // draw.rect(width, height).fill("#fff").dblclick(function() { zoom_out() });
+    draw.rect(width, height).fill("transparent").dblclick(function() { zoom_out() });
     draw.viewbox(0,0,width,height);
 // this decides layer order
 var draw_edge = draw.group();
@@ -9,7 +10,7 @@ var draw_node = draw.group();
 var draw_text = draw.group();
 var draw_legend = draw.group();
 
-var nsize = 6, nsizeb = 10;
+var nsize = 2, nsizeb = 10;
 var bbox = [width,-width,height,-height,0,0]; // (x_min, x_max, y_min, y_max, x_center, y_center)
 var colors = ["#065143", "#129490",
   "#70B77E", "#E0A890", "#CE1483", "#fe4a49",
@@ -108,7 +109,52 @@ $.getJSON("http://127.0.0.1:8080/data/indv/"+filename, function( data ) {
       legend_text.mouseout(function() { reset_highlight() });
     }
 
+    // generate conf_year plot and save as file
+    // var conf_list = ["ICFP"]
+    // for (var conf_name in conf_list) {
+    //   for (var conf_year = 2010; conf_year <= 2010; conf_year++) {
+    //     highlight_group_year(conf_list[conf_name], conf_year)
+    //     setTimeout(save_as_file(conf_list[conf_name]+"_"+conf_year), 2000);
+    //   }
+    // }
+
 });
+
+function highlight_group_year(gname, year) {
+  dim_every_nodes(0);
+  for (var e in every_nodes[gname]) {
+    var name = every_nodes[gname][e].node.id.split("_");
+    var year_n = name[1], pid = name[2];
+    if (year_n == year) {
+      if (pid == "average") {
+        every_nodes[gname][e].attr("r", nsizeb).attr("opacity", 1)
+            .fill(colors[glist.indexOf(gname)%colors.length]);
+      } else {
+        every_nodes[gname][e].attr("r", nsize).attr("opacity", 1)
+            .fill(colors[glist.indexOf(gname)%colors.length]);
+      }
+      var year_t = every_nodes_t[gname][e].node.id.split("_")[1];
+      every_nodes_t[gname][e].attr("visibility", "visible");
+    } else {
+      every_nodes_t[gname][e].attr("visibility", "hidden")
+      every_nodes[gname][e].attr("r", nsize).attr("opacity", 0.1)
+          .fill(colors[glist.indexOf(gname)%colors.length]);
+    }
+  }
+}
+
+function save_as_file(filename){
+  // download as svg file
+  var svgData = $("#papers")[0].outerHTML;
+  var svgBlob = new Blob([svgData], {type:"image/svg+xml;charset=utf-8"});
+  var svgUrl = URL.createObjectURL(svgBlob);
+  var downloadLink = document.createElement("a");
+  downloadLink.href = svgUrl;
+  downloadLink.download = filename+".png";
+  document.body.appendChild(downloadLink);
+  downloadLink.click();
+  document.body.removeChild(downloadLink);
+}
 
 function zoom_out() {
   if (!zoomed) return;

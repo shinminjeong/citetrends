@@ -214,20 +214,24 @@ name_id_pairs = {
     # "cheng-soon-ong": {"id": 2609987651, "type":"author", "numpaper":{}},
     # "robert-c-williamson": {"id": 2122328552, "type":"author", "numpaper":{}},
     # "alexander-j-smola": {"id": 1972291593, "type":"author", "numpaper":{}},
+    # "christopher-d-manning": {"id": 2149153931, "type":"author", "numpaper":{}},
+    # "richard-socher": {"id": 1964982643, "type":"author", "numpaper":{}},
+    # "andrew-y-ng": {"id": 2104401652, "type":"author", "numpaper":{}},
     "POPL": {"id": 1160032607, "type":"conf", "numpaper":{}},
     "PLDI": {"id": 1127352206, "type":"conf", "numpaper":{}},
     "OOPSLA": {"id": 1138732554, "type":"conf", "numpaper":{}},
-    "ISCA": {"id": 1131341566, "type":"conf", "numpaper":{}},
-    "MICRO": {"id": 1150919317, "type":"conf", "numpaper":{}},
+    # "ISCA": {"id": 1131341566, "type":"conf", "numpaper":{}},
+    # "MICRO": {"id": 1150919317, "type":"conf", "numpaper":{}},
     "ASPLOS": {"id": 1174091362, "type":"conf", "numpaper":{}},
-    "OSDI": {"id": 1185109434, "type":"conf", "numpaper":{}},
-    "ICML": {"id": 1180662882, "type":"conf", "numpaper":{}},
-    "NIPS": {"id": 1127325140, "type":"conf", "numpaper":{}},
-    "WSDM": {"id": 1120384002, "type":"conf", "numpaper":{}},
-    "CIKM": {"id": 1194094125, "type":"conf", "numpaper":{}},
-    "ICWSM": {"id": 1124713781, "type":"conf", "numpaper":{}},
-    "WWW": {"id": 1135342153, "type":"conf", "numpaper":{}},
-    "AAAI": {"id": 1184914352, "type":"conf", "numpaper":{}},
+    "ICFP": {"id": 1162793720, "type":"conf", "numpaper":{}},
+    # "OSDI": {"id": 1185109434, "type":"conf", "numpaper":{}},
+    # "ICML": {"id": 1180662882, "type":"conf", "numpaper":{}},
+    # "NIPS": {"id": 1127325140, "type":"conf", "numpaper":{}},
+    # "WSDM": {"id": 1120384002, "type":"conf", "numpaper":{}},
+    # "CIKM": {"id": 1194094125, "type":"conf", "numpaper":{}},
+    # "ICWSM": {"id": 1124713781, "type":"conf", "numpaper":{}},
+    # "WWW": {"id": 1135342153, "type":"conf", "numpaper":{}},
+    # "AAAI": {"id": 1184914352, "type":"conf", "numpaper":{}},
 }
 
 def generate_data():
@@ -308,10 +312,11 @@ def generate_year_trends_plots():
             # vec["{}_{}".format(name, y)] = get_vector(name, sorted_list_bov, ref, year=0)
             vec["{}_{}".format(name, y)] = get_vector(name, sorted_list_bov, ref, year=y)
 
-    for name in ["ICML","NIPS","WSDM","CIKM","ICWSM","WWW","AAAI"]:
+    # for name in ["ICML","NIPS","WSDM","CIKM","ICWSM","WWW","AAAI"]:
+    for name in ["ICML","NIPS"]:
         vec["{}_Anchor".format(name)] = generate_one_hot_vec(sorted_list_bov, name_id_pairs[name]["id"])
     # print_cos_similarity(vec)
-    reduce_and_save(vec, number_of_venues, "ml_anchor")
+    reduce_and_save(vec, number_of_venues, "nlp")
 
 
 def reduce_and_save(vec, number_of_venues, tag):
@@ -365,10 +370,10 @@ def generate_indv_paper_plots():
             vec["{}_{}_average".format(cname, y)] = get_vector(cname, sorted_list_bov, ref, year=y)
 
     # print(vec)
-    reduce_and_save(vec, number_of_venues, "ppl")
+    reduce_and_save(vec, number_of_venues, "conf_pl")
 
 
 if __name__ == '__main__':
     # download_data_save_as_json()
-    generate_year_trends_plots()
-    # generate_indv_paper_plots()
+    # generate_year_trends_plots()
+    generate_indv_paper_plots()
