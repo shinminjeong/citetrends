@@ -1,5 +1,6 @@
 var width = $(window).width(), height = $(window).height();
 var margin = 5, legend_margin = 200, text_margin = 15;
+
 var draw = SVG('papers').size(width, height);
     // draw.rect(width, height).fill("#fff").dblclick(function() { zoom_out() });
     draw.rect(width, height).fill("transparent").dblclick(function() { zoom_out() });
@@ -9,6 +10,7 @@ var draw_edge = draw.group();
 var draw_node = draw.group();
 var draw_text = draw.group();
 var draw_legend = draw.group();
+var canvas = document.getElementById('papers');
 
 var nsize = 2, nsizeb = 10;
 var bbox = [width,-width,height,-height,0,0]; // (x_min, x_max, y_min, y_max, x_center, y_center)
@@ -118,9 +120,71 @@ $.getJSON("http://127.0.0.1:8080/data/indv/"+filename, function( data ) {
     //   }
     // }
 
+    initDraw();
+
 });
 
+var mouse = {
+    x: 0,
+    y: 0,
+    startX: 0,
+    startY: 0
+};
+var element = null;
+function hover_change() {
+  console.log("hover_switch", hover_switch.checked);
+  var rects = document.getElementsByClassName("select_rectangle")
+  while (rects.length > 0) { rects[0].remove(); }
+}
+
+function initDraw() {
+  canvas.onmousemove = function(e) { draw_rect_move(e); };
+  canvas.onclick = function(e) { draw_rect_click (e); };
+}
+
+function setMousePosition(e) {
+  var ev = e || window.event; //Moz || IE
+  if (ev.pageX) { //Moz
+      mouse.x = ev.pageX + window.pageXOffset;
+      mouse.y = ev.pageY + window.pageYOffset;
+  } else if (ev.clientX) { //IE
+      mouse.x = ev.clientX + document.body.scrollLeft;
+      mouse.y = ev.clientY + document.body.scrollTop;
+  }
+}
+
+function draw_rect_move(e) {
+  if (!hover_switch.checked) return;
+  setMousePosition(e);
+  if (element !== null) {
+      element.style.width = Math.abs(mouse.x - mouse.startX) + 'px';
+      element.style.height = Math.abs(mouse.y - mouse.startY) + 'px';
+      element.style.left = (mouse.x - mouse.startX < 0) ? mouse.x + 'px' : mouse.startX + 'px';
+      element.style.top = (mouse.y - mouse.startY < 0) ? mouse.y + 'px' : mouse.startY + 'px';
+  }
+}
+function draw_rect_click(e) {
+  if (!hover_switch.checked) return;
+  if (element !== null) {
+      element = null;
+      canvas.style.cursor = "default";
+      console.log("finsihed.");
+  } else {
+      console.log("begun.");
+      mouse.startX = mouse.x;
+      mouse.startY = mouse.y;
+      element = document.createElement('div');
+      element.className = 'select_rectangle'
+      element.style.left = mouse.x + 'px';
+      element.style.top = mouse.y + 'px';
+      canvas.appendChild(element)
+      canvas.style.cursor = "crosshair";
+  }
+}
+
 function highlight_group_year(gname, year) {
+  if (hover_switch.checked) return;
+
   dim_every_nodes(0);
   for (var e in every_nodes[gname]) {
     var name = every_nodes[gname][e].node.id.split("_");
@@ -157,7 +221,7 @@ function save_as_file(filename){
 }
 
 function zoom_out() {
-  if (!zoomed) return;
+  if (!zoomed || hover_switch.checked) return;
   zoomed = false;
   reset_highlight();
   remove_edges();
@@ -180,7 +244,7 @@ function calculate_bbox(data) {
 }
 
 function zoom_in_node(nid) {
-  if (zoomed) return;
+  if (zoomed || hover_switch.checked) return;
   zoomed = true;
   dim_every_nodes(0.2);
   var name = nid.split("_");
@@ -226,6 +290,7 @@ function zoom_in_node(nid) {
 
 var mouseover_while_zoomed;
 function highlight_node(nid) {
+  if (hover_switch.checked) return;
   // console.log("highlight_node", nid);
   if (!zoomed) dim_every_nodes(0.6);
   mouseover_while_zoomed = nid;
@@ -262,7 +327,7 @@ function draw_edges_group(gname) {
 }
 
 function highlight_group(gname) {
-  if (zoomed) return;
+  if (zoomed || hover_switch.checked) return;
   // console.log("highlight_group", gname);
   dim_every_nodes(0.3);
   for (var e in every_nodes[gname]) {
