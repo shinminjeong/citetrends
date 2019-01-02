@@ -169,7 +169,24 @@ function get_papers_in_rect(element){
       selectedcircles.push(everycircles[c].getAttribute("id"));
     }
   }
-  console.log(selectedcircles);
+  // console.log(selectedcircles);
+  send_selected(selectedcircles);
+}
+
+function send_selected(data) {
+  $.ajax({
+    type: "POST",
+    url: "/search",
+    data: { "papers":
+      JSON.stringify(data)
+    },
+    success: function (result) {
+      console.log("success", result["test"]);
+    },
+    error: function (result) {
+      console.log("error");
+    }
+  });
 }
 
 function draw_rect_move(e) {

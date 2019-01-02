@@ -22,4 +22,5 @@ urlpatterns = [
     url(r'^$', views.main, name='main'),
     url(r'^menu/$', views.menu, name='menu'),
     url(r'^plot/$', views.plot, name='plot'),
+    url(r'^search$', views.search, name='search'),
 ]

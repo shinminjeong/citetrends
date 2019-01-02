@@ -27,3 +27,12 @@ def plot(request):
         return render(request, "plot_avg.html", {"input_data": data})
     if file_type == "indv":
         return render(request, "plot_indv.html", {"input_data": data})
+
+@csrf_exempt
+def search(request):
+    selected_papers = request.POST.get("papers")
+    paper_arr = json.loads(selected_papers)
+    print(paper_arr[0])
+    for p in paper_arr:
+        print(p)
+    return JsonResponse({"test": "test"})
