@@ -25,104 +25,101 @@ var every_nodes_t = {};
 var every_edges = {};
 var zoomed = false;
 
-var filename = GetURLParameter("input");
-console.log(filename)
+function draw_indv_plot( data ) {
+  var groups = new Set();
+  for (var key in data) {
+    // calculating boundary box
+    bbox[0] = Math.min(bbox[0], data[key][0]-margin)
+    bbox[1] = Math.max(bbox[1], data[key][0]+margin)
+    bbox[2] = Math.min(bbox[2], data[key][1]-margin)
+    bbox[3] = Math.max(bbox[3], data[key][1]+margin)
+    // save names of nodes
+    var name = key.split("_");
+    // var gname = name[0]+"-"+name[1];
+    var gname = name[0];
+    var year = name[1];
+    var paperid = name[2];
+    groups.add(gname);
+    yearSet.add(year);
+    every_nodes[gname] = [];
+    every_nodes_t[gname] = [];
+    every_edges[gname] = [];
+  }
+  bbox[4] = (bbox[0]+bbox[1])/2;
+  bbox[5] = (bbox[2]+bbox[3])/2;
 
-$.getJSON("http://127.0.0.1:8080/data/indv/"+filename, function( data ) {
-    var groups = new Set();
-    for (var key in data) {
-      // calculating boundary box
-      bbox[0] = Math.min(bbox[0], data[key][0]-margin)
-      bbox[1] = Math.max(bbox[1], data[key][0]+margin)
-      bbox[2] = Math.min(bbox[2], data[key][1]-margin)
-      bbox[3] = Math.max(bbox[3], data[key][1]+margin)
-      // save names of nodes
-      var name = key.split("_");
-      // var gname = name[0]+"-"+name[1];
-      var gname = name[0];
-      var year = name[1];
-      var paperid = name[2];
-      groups.add(gname);
-      yearSet.add(year);
-      every_nodes[gname] = [];
-      every_nodes_t[gname] = [];
-      every_edges[gname] = [];
-    }
-    bbox[4] = (bbox[0]+bbox[1])/2;
-    bbox[5] = (bbox[2]+bbox[3])/2;
+  glist = Array.from(groups); // list of names
+  var xd = bbox[1]-bbox[0],
+      yd = bbox[3]-bbox[2];
+  var xs = (width-legend_margin)/xd, ys = height/yd;
+  console.log("original", xd, yd, xs, ys);
+  // draw circle for each point
+  for (var key in data) {
+    var name = key.split("_");
+    // var gname = name[0]+"-"+name[1];
+    var gname = name[0];
+    var year = name[1];
+    var paperid = name[2];
+    var newx = (data[key][0]-bbox[4])*xs+(width-legend_margin)/2,
+        newy = (data[key][1]-bbox[5])*ys+height/2;
+    // console.log(data[key][0], data[key][1], newx, newy);
+    var circle = draw_node.circle(nsize*2).id(key)
+        .attr("ox", data[key][0]).attr("oy", data[key][1])
+        .attr("px", newx).attr("py", newy)
+        .center(newx, newy)
+        .fill(colors[glist.indexOf(gname)%colors.length]);
+    circle.mouseover(function() { highlight_node(this.node.id) });
+    circle.mouseout(function() { reset_highlight() });
+    circle.click(function() { zoom_in_node(this.node.id) });
+    every_nodes[gname].push(circle);
+  }
 
-    glist = Array.from(groups); // list of names
-    var xd = bbox[1]-bbox[0],
-        yd = bbox[3]-bbox[2];
-    var xs = (width-legend_margin)/xd, ys = height/yd;
-    console.log("original", xd, yd, xs, ys);
-    // draw circle for each point
-    for (var key in data) {
-      var name = key.split("_");
-      // var gname = name[0]+"-"+name[1];
-      var gname = name[0];
-      var year = name[1];
-      var paperid = name[2];
-      var newx = (data[key][0]-bbox[4])*xs+(width-legend_margin)/2,
-          newy = (data[key][1]-bbox[5])*ys+height/2;
-      // console.log(data[key][0], data[key][1], newx, newy);
-      var circle = draw_node.circle(nsize*2).id(key)
-          .attr("ox", data[key][0]).attr("oy", data[key][1])
-          .attr("px", newx).attr("py", newy)
-          .center(newx, newy)
-          .fill(colors[glist.indexOf(gname)%colors.length]);
-      circle.mouseover(function() { highlight_node(this.node.id) });
-      circle.mouseout(function() { reset_highlight() });
-      circle.click(function() { zoom_in_node(this.node.id) });
-      every_nodes[gname].push(circle);
-    }
+  // draw year for each point
+  for (var key in data) {
+    var name = key.split("_");
+    // var gname = name[0]+"-"+name[1];
+    var gname = name[0];
+    var year = name[1];
+    var paperid = name[2];
+    var newx = (data[key][0]-bbox[4])*xs+(width-legend_margin)/2,
+        newy = (data[key][1]-bbox[5])*ys+height/2;
+    var label = "";
+    if (paperid == "average") label = year;
+    var c_text = draw_text.text(label).id(key).fill("#000")
+        .attr("x", newx+text_margin).attr("y", newy)
+        .attr("stroke", 1)
+        .attr("stroke-color", "white")
+        .attr("visibility", "hidden");
+    every_nodes_t[gname].push(c_text);
+  }
 
-    // draw year for each point
-    for (var key in data) {
-      var name = key.split("_");
-      // var gname = name[0]+"-"+name[1];
-      var gname = name[0];
-      var year = name[1];
-      var paperid = name[2];
-      var newx = (data[key][0]-bbox[4])*xs+(width-legend_margin)/2,
-          newy = (data[key][1]-bbox[5])*ys+height/2;
-      var label = "";
-      if (paperid == "average") label = year;
-      var c_text = draw_text.text(label).id(key).fill("#000")
-          .attr("x", newx+text_margin).attr("y", newy)
-          .attr("stroke", 1)
-          .attr("stroke-color", "white")
-          .attr("visibility", "hidden");
-      every_nodes_t[gname].push(c_text);
-    }
+  // draw legends
+  for (var gid in glist) {
+    var legend_rect = draw_legend.rect(20,20).id(gid)
+        .fill(colors[gid%colors.length]).move(width-legend_margin, gid*25+20);
+    var legend_text = draw_legend.text(glist[gid]).id(gid)
+        .move(width-legend_margin+30, gid*25+20)
+        .fill("#000");
 
-    // draw legends
-    for (var gid in glist) {
-      var legend_rect = draw_legend.rect(20,20).id(gid)
-          .fill(colors[gid%colors.length]).move(width-legend_margin, gid*25+20);
-      var legend_text = draw_legend.text(glist[gid]).id(gid)
-          .move(width-legend_margin+30, gid*25+20)
-          .fill("#000");
+    legend_rect.mouseover(function() { highlight_group(glist[this.node.id]) });
+    legend_text.mouseover(function() { highlight_group(glist[this.node.id]) });
 
-      legend_rect.mouseover(function() { highlight_group(glist[this.node.id]) });
-      legend_text.mouseover(function() { highlight_group(glist[this.node.id]) });
+    legend_rect.mouseout(function() { reset_highlight() });
+    legend_text.mouseout(function() { reset_highlight() });
+  }
 
-      legend_rect.mouseout(function() { reset_highlight() });
-      legend_text.mouseout(function() { reset_highlight() });
-    }
+  // generate conf_year plot and save as file
+  // var conf_list = ["ICFP"]
+  // for (var conf_name in conf_list) {
+  //   for (var conf_year = 2010; conf_year <= 2010; conf_year++) {
+  //     highlight_group_year(conf_list[conf_name], conf_year)
+  //     setTimeout(save_as_file(conf_list[conf_name]+"_"+conf_year), 2000);
+  //   }
+  // }
 
-    // generate conf_year plot and save as file
-    // var conf_list = ["ICFP"]
-    // for (var conf_name in conf_list) {
-    //   for (var conf_year = 2010; conf_year <= 2010; conf_year++) {
-    //     highlight_group_year(conf_list[conf_name], conf_year)
-    //     setTimeout(save_as_file(conf_list[conf_name]+"_"+conf_year), 2000);
-    //   }
-    // }
+  initDraw();
 
-    initDraw();
-
-});
+}
 
 var mouse = {
     x: 0,

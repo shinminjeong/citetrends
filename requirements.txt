@@ -1,3 +1,4 @@
+django
 sklearn
 numpy
 elasticsearch

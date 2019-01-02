@@ -1,0 +1,13 @@
+<html>
+<head>
+</head>
+<body>
+  <ul>
+    {% for l in list %}
+      <li>
+        <a href="/plot?type={{type}}&input={{l}}">{{ l }}</a>
+      </li>
+    {% endfor %}
+  </ul>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{% load staticfiles %}
+<html>
+<head>
+  <script src="{% static 'js/svg.min.js' %}"></script>
+  <script src="{% static 'js/jquery.min.js' %}"></script>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}" />
+  <title>SVG.js</title>
+</head>
+<body>
+  <div id="drawing"></div>
+</body>
+<script src="{% static 'js/drawing.js' %}"></script>
+<script>
+var data = {{ input_data|safe }};
+draw_avg_plot(data);
+</script>
+</html>
