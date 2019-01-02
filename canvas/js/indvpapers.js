@@ -153,6 +153,28 @@ function setMousePosition(e) {
   }
 }
 
+function get_papers_in_rect(element){
+  var sl = element.style.left,
+      sw = element.style.width,
+      st = element.style.top,
+      sh = element.style.height;
+  var pl = parseInt(sl.substring(0, sl.length-2)),
+      pr = pl+parseInt(sw.substring(0, sw.length-2)),
+      pt = parseInt(st.substring(0, st.length-2)),
+      pb = pt+parseInt(sh.substring(0, sh.length-2));
+  // console.log("rect", pl, pr, pt, pb);
+  var selectedcircles = [];
+  var everycircles = $("circle");
+  for (var c = 0; c < everycircles.length; c++) {
+    if ((pl <= everycircles[c].getAttribute("cx") && everycircles[c].getAttribute("cx") <= pr)
+        && (pt <= everycircles[c].getAttribute("cy") && everycircles[c].getAttribute("cy") <= pb)) {
+      // console.log(everycircles[c].getAttribute("id"));
+      selectedcircles.push(everycircles[c].getAttribute("id"));
+    }
+  }
+  console.log(selectedcircles);
+}
+
 function draw_rect_move(e) {
   if (!hover_switch.checked) return;
   setMousePosition(e);
@@ -166,6 +188,7 @@ function draw_rect_move(e) {
 function draw_rect_click(e) {
   if (!hover_switch.checked) return;
   if (element !== null) {
+      get_papers_in_rect(element);
       element = null;
       canvas.style.cursor = "default";
       console.log("finsihed.");
