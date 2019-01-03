@@ -20,9 +20,12 @@ var colors = ["#065143", "#129490",
   "#0b409c", "#5e227f"]
 var glist = [];
 var yearSet = new Set();
+var group_flag = {};
 var every_nodes = {};
 var every_nodes_t = {};
 var every_edges = {};
+var legend_rect = {};
+var legend_text = {};
 var zoomed = false;
 
 function draw_indv_plot( data ) {
@@ -41,6 +44,7 @@ function draw_indv_plot( data ) {
     var paperid = name[2];
     groups.add(gname);
     yearSet.add(year);
+    group_flag[gname] = true;
     every_nodes[gname] = [];
     every_nodes_t[gname] = [];
     every_edges[gname] = [];
@@ -95,17 +99,19 @@ function draw_indv_plot( data ) {
 
   // draw legends
   for (var gid in glist) {
-    var legend_rect = draw_legend.rect(20,20).id(gid)
+    gname = glist[gid];
+    legend_rect[gname] = draw_legend.rect(20,20).id(gid)
+        .stroke(colors[gid%colors.length])
         .fill(colors[gid%colors.length]).move(width-legend_margin, gid*25+20);
-    var legend_text = draw_legend.text(glist[gid]).id(gid)
+    legend_text[gname] = draw_legend.text(glist[gid]).id(gid)
         .move(width-legend_margin+30, gid*25+20)
         .fill("#000");
 
-    legend_rect.mouseover(function() { highlight_group(glist[this.node.id]) });
-    legend_text.mouseover(function() { highlight_group(glist[this.node.id]) });
-
-    legend_rect.mouseout(function() { reset_highlight() });
-    legend_text.mouseout(function() { reset_highlight() });
+    legend_rect[gname].click(function() { toggle_group(this.node.id) });
+    legend_rect[gname].mouseover(function() { highlight_group(glist[this.node.id]) });
+    legend_text[gname].mouseover(function() { highlight_group(glist[this.node.id]) });
+    legend_rect[gname].mouseout(function() { reset_highlight() });
+    legend_text[gname].mouseout(function() { reset_highlight() });
   }
 
   // generate conf_year plot and save as file
@@ -164,8 +170,10 @@ function get_papers_in_rect(element){
   var everycircles = $("circle");
   // console.log("everycircles.length", everycircles.length)
   for (var c = 0; c < everycircles.length; c++) {
-    if ((pl <= everycircles[c].getAttribute("cx") && everycircles[c].getAttribute("cx") <= pr)
-        && (pt <= everycircles[c].getAttribute("cy") && everycircles[c].getAttribute("cy") <= pb)) {
+    var gname = everycircles[c].getAttribute("id").split("_")[0];
+    if (group_flag[gname]
+      && (pl <= everycircles[c].getAttribute("cx") && everycircles[c].getAttribute("cx") <= pr)
+      && (pt <= everycircles[c].getAttribute("cy") && everycircles[c].getAttribute("cy") <= pb)) {
       // console.log(everycircles[c].getAttribute("id"));
       selectedcircles.push(everycircles[c].getAttribute("id"));
     }
@@ -182,7 +190,7 @@ function send_selected(data) {
       JSON.stringify(data)
     },
     success: function (result) {
-      console.log("success", result["text"]);
+      // console.log("success", result["text"]);
       verbose_text.innerHTML += result["text"];
       verbose_text.scrollTop = verbose_text.scrollHeight;
     },
@@ -366,8 +374,26 @@ function draw_edges_group(gname) {
   }
 }
 
+function toggle_group(gid) {
+  if (zoomed) return;
+  gname = glist[gid];
+  group_flag[gname] = !group_flag[gname];
+  console.log("set group flag", gname, group_flag[gname])
+  for (var e in every_nodes[gname]) {
+    if (group_flag[gname]) {
+      legend_rect[gname].fill(colors[gid%colors.length]);
+      every_nodes[gname][e].attr("visibility", "visible");
+      every_nodes_t[gname][e].attr("visibility", "visible");
+    } else {
+      legend_rect[gname].fill("#eee");
+      every_nodes[gname][e].attr("visibility", "hidden");
+      every_nodes_t[gname][e].attr("visibility", "hidden");
+    }
+  }
+}
+
 function highlight_group(gname) {
-  if (zoomed || (hover_switch && hover_switch.checked)) return;
+  if (zoomed || !group_flag[gname] || (hover_switch && hover_switch.checked)) return;
   // console.log("highlight_group", gname);
   dim_every_nodes(0.3);
   for (var e in every_nodes[gname]) {
