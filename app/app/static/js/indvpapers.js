@@ -1,6 +1,7 @@
-var width = $(window).width(), height = $(window).height();
-var margin = 5, legend_margin = 200, text_margin = 15;
+var canvas = document.getElementById('papers');
 
+var width = canvas.offsetWidth, height = $(window).height();
+var margin = 5, legend_margin = 200, text_margin = 15;
 var draw = SVG('papers').size(width, height);
     // draw.rect(width, height).fill("#fff").dblclick(function() { zoom_out() });
     draw.rect(width, height).fill("transparent").dblclick(function() { zoom_out() });
@@ -10,9 +11,8 @@ var draw_edge = draw.group();
 var draw_node = draw.group();
 var draw_text = draw.group();
 var draw_legend = draw.group();
-var canvas = document.getElementById('papers');
 
-var nsize = 2, nsizeb = 10;
+var nsize = 2, nsizeb = 6;
 var bbox = [width,-width,height,-height,0,0]; // (x_min, x_max, y_min, y_max, x_center, y_center)
 var colors = ["#065143", "#129490",
   "#70B77E", "#E0A890", "#CE1483", "#fe4a49",
@@ -52,7 +52,7 @@ function draw_indv_plot( data ) {
   var xd = bbox[1]-bbox[0],
       yd = bbox[3]-bbox[2];
   var xs = (width-legend_margin)/xd, ys = height/yd;
-  console.log("original", xd, yd, xs, ys);
+  // console.log("original", xd, yd, xs, ys);
   // draw circle for each point
   for (var key in data) {
     var name = key.split("_");
@@ -116,9 +116,6 @@ function draw_indv_plot( data ) {
   //     setTimeout(save_as_file(conf_list[conf_name]+"_"+conf_year), 2000);
   //   }
   // }
-
-  initDraw();
-
 }
 
 var mouse = {
@@ -131,10 +128,13 @@ var element = null;
 function hover_change() {
   console.log("hover_switch", hover_switch.checked);
   var rects = document.getElementsByClassName("select_rectangle")
-  while (rects.length > 0) { rects[0].remove(); }
+  while (rects.length > 0) {
+    rects[0].remove();
+    verbose_text.innerHTML = 0;
+  }
 }
 
-function initDraw() {
+function enableRectDraw() {
   canvas.onmousemove = function(e) { draw_rect_move(e); };
   canvas.onclick = function(e) { draw_rect_click (e); };
 }
@@ -162,6 +162,7 @@ function get_papers_in_rect(element){
   // console.log("rect", pl, pr, pt, pb);
   var selectedcircles = [];
   var everycircles = $("circle");
+  // console.log("everycircles.length", everycircles.length)
   for (var c = 0; c < everycircles.length; c++) {
     if ((pl <= everycircles[c].getAttribute("cx") && everycircles[c].getAttribute("cx") <= pr)
         && (pt <= everycircles[c].getAttribute("cy") && everycircles[c].getAttribute("cy") <= pb)) {
@@ -181,7 +182,9 @@ function send_selected(data) {
       JSON.stringify(data)
     },
     success: function (result) {
-      console.log("success", result["test"]);
+      console.log("success", result["text"]);
+      verbose_text.innerHTML += result["text"];
+      verbose_text.scrollTop = verbose_text.scrollHeight;
     },
     error: function (result) {
       console.log("error");
@@ -190,7 +193,7 @@ function send_selected(data) {
 }
 
 function draw_rect_move(e) {
-  if (!hover_switch.checked) return;
+  if (hover_switch && !hover_switch.checked) return;
   setMousePosition(e);
   if (element !== null) {
       element.style.width = Math.abs(mouse.x - mouse.startX) + 'px';
@@ -200,7 +203,7 @@ function draw_rect_move(e) {
   }
 }
 function draw_rect_click(e) {
-  if (!hover_switch.checked) return;
+  if (hover_switch && !hover_switch.checked) return;
   if (element !== null) {
       get_papers_in_rect(element);
       element = null;
@@ -220,7 +223,7 @@ function draw_rect_click(e) {
 }
 
 function highlight_group_year(gname, year) {
-  if (hover_switch.checked) return;
+  if (hover_switch && hover_switch.checked) return;
 
   dim_every_nodes(0);
   for (var e in every_nodes[gname]) {
@@ -258,7 +261,7 @@ function save_as_file(filename){
 }
 
 function zoom_out() {
-  if (!zoomed || hover_switch.checked) return;
+  if (!zoomed || (hover_switch && hover_switch.checked)) return;
   zoomed = false;
   reset_highlight();
   remove_edges();
@@ -281,7 +284,7 @@ function calculate_bbox(data) {
 }
 
 function zoom_in_node(nid) {
-  if (zoomed || hover_switch.checked) return;
+  if (zoomed || (hover_switch && hover_switch.checked)) return;
   zoomed = true;
   dim_every_nodes(0.2);
   var name = nid.split("_");
@@ -327,7 +330,7 @@ function zoom_in_node(nid) {
 
 var mouseover_while_zoomed;
 function highlight_node(nid) {
-  if (hover_switch.checked) return;
+  if (hover_switch && hover_switch.checked) return;
   // console.log("highlight_node", nid);
   if (!zoomed) dim_every_nodes(0.6);
   mouseover_while_zoomed = nid;
@@ -364,7 +367,7 @@ function draw_edges_group(gname) {
 }
 
 function highlight_group(gname) {
-  if (zoomed || hover_switch.checked) return;
+  if (zoomed || (hover_switch && hover_switch.checked)) return;
   // console.log("highlight_group", gname);
   dim_every_nodes(0.3);
   for (var e in every_nodes[gname]) {

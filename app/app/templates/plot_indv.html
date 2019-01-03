@@ -6,17 +6,28 @@
   <link rel="stylesheet" href="{% static 'css/style.css' %}" />
   <title>SVG.js</title>
 </head>
-<body>
-  <div id="papers"></div>
-  <label class="switch" id="hover_switch">
-    <input type="checkbox" id="hover_switch_ckb" onclick="hover_change(this);">
-    <span class="slider round"></span>
-  </label>
+<body style="margin:0">
+  {% if verbose == 'true' %}
+    <div style="width:70%; float:left;" id="papers"></div>
+    <div style="width:28%; float:right;" id="verbose_div">
+    </div>
+    <label class="switch" id="hover_switch">
+      <input type="checkbox" id="hover_switch_ckb" onclick="hover_change(this);">
+      <span class="slider round"></span>
+    </label>
+  {% else %}
+    <div style="width:100%" id="papers"></div>
+  {% endif %}
 </body>
 <script src="{% static 'js/indvpapers.js' %}"></script>
 <script>
 var hover_switch = document.getElementById("hover_switch_ckb");
+var verbose_text = document.getElementById("verbose_div");
 var data = {{ input_data|safe }};
+var verbose = "{{ verbose }}" == "true";
 draw_indv_plot(data);
+if (verbose) {
+  enableRectDraw();
+}
 </script>
 </html>
