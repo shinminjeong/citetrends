@@ -56,7 +56,6 @@ def search(request):
     else: # year average
         selected_years = request.POST.get("nodes")
         avg_year_arr = json.loads(selected_years)
-        print(avg_year_arr)
         for p in sorted(avg_year_arr):
             name, year = p.split("_")
             if year == "Anchor": continue
@@ -65,7 +64,6 @@ def search(request):
                 rawinfo[name] = json.loads(open(raw_data_path).read())
             y_papers = []
             for pid, paper in rawinfo[name].items():
-                print(paper["Year"], year)
                 if paper["Year"] == int(year):
                     # print(paper)
                     refcounter.extend(paper["References"])
