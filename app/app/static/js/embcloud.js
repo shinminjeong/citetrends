@@ -27,8 +27,14 @@ var every_edges = {};
 var legend_rect = {};
 var legend_text = {};
 var zoomed = false;
+var plottype = "avg"; // avg or indv
 
-function draw_indv_plot( data ) {
+function drawCloud( data, type ) {
+  plottype = type;
+  // console.log("plottype", plottype)
+  if (plottype == "avg") {
+    nsize = 6, nsizeb = 10;
+  }
   var groups = new Set();
   for (var key in data) {
     // calculating boundary box
@@ -81,14 +87,16 @@ function draw_indv_plot( data ) {
   // draw year for each point
   for (var key in data) {
     var name = key.split("_");
-    // var gname = name[0]+"-"+name[1];
     var gname = name[0];
     var year = name[1];
     var paperid = name[2];
     var newx = (data[key][0]-bbox[4])*xs+(width-legend_margin)/2,
         newy = (data[key][1]-bbox[5])*ys+height/2;
     var label = "";
-    if (paperid == "average") label = year;
+    if (plottype == "avg" || (plottype == "indv" && paperid == "average")) {
+      label = year;
+    }
+    // console.log(plottype, key, label)
     var c_text = draw_text.text(label).id(key).fill("#000")
         .attr("x", newx+text_margin).attr("y", newy)
         .attr("stroke", 1)
@@ -296,7 +304,6 @@ function zoom_in_node(nid) {
   zoomed = true;
   dim_every_nodes(0.2);
   var name = nid.split("_");
-  // var gname = name[0]+"-"+name[1];
   var gname = name[0];
 
   // calculate bbox region to zome in
@@ -321,7 +328,8 @@ function zoom_in_node(nid) {
   for (var e in every_nodes[gname]) {
     var name = every_nodes[gname][e].node.id.split("_");
     var year_n = name[1], pid = name[2];
-    if (pid == "average") {
+    console.log(plottype, gname, year_n, pid, e)
+    if (pid == "average" || year_n%5 == 0) {
       every_nodes[gname][e].attr("r", nsize).attr("opacity", 1)
           .fill(colors[glist.indexOf(gname)%colors.length]);
     } else {
@@ -329,9 +337,9 @@ function zoom_in_node(nid) {
           .fill("white").attr("stroke", colors[glist.indexOf(gname)%colors.length]);
     }
     var year_t = every_nodes_t[gname][e].node.id.split("_")[1];
-    // if (year_t%5 == 0) {
+    if (plottype == "indv" || (plottype == "avg" && year_t%5 == 0)) {
       every_nodes_t[gname][e].attr("visibility", "visible");
-    // }
+    }
   }
   draw_edges_group(gname);
 }
@@ -361,7 +369,10 @@ function draw_edges_group(gname) {
   var yearlist = Array.from(yearSet).sort();
   var prv = null;
   for (var y in yearlist) {
-    var cur = SVG.get("#"+gname+"_"+yearlist[y]+"_average");
+    var cur = SVG.get("#"+gname+"_"+yearlist[y]);
+    if (plottype == "indv") {
+      cur = SVG.get("#"+gname+"_"+yearlist[y]+"_average");
+    }
     if (cur) {
       if (prv) {
         var path = draw_edge.line(prv.node.getAttribute("cx"), prv.node.getAttribute("cy"),
@@ -434,7 +445,10 @@ function reset_highlight() {
           .fill(colors[glist.indexOf(gname)%colors.length]);
       var name = tmp.id.split("_");
       var label = "";
-      if (name[2] == "average") label = name[1];
+      var label = "";
+      if (plottype == "avg" || (plottype == "indv" && name[2] == "average")) {
+        label = name[1];
+      }
       every_nodes_t[gname][e].text(label).attr("visibility", "hidden")
           .attr("x", newx+text_margin).attr("y", newy)
     }

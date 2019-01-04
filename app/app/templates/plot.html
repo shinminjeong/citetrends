@@ -19,13 +19,14 @@
     <div style="width:100%" id="papers"></div>
   {% endif %}
 </body>
-<script src="{% static 'js/indvpapers.js' %}"></script>
+<script src="{% static 'js/embcloud.js' %}"></script>
 <script>
 var hover_switch = document.getElementById("hover_switch_ckb");
 var verbose_text = document.getElementById("verbose_div");
 var data = {{ input_data|safe }};
+var plottype = "{{ plottype }}";
 var verbose = "{{ verbose }}" == "true";
-draw_indv_plot(data);
+drawCloud(data, plottype);
 if (verbose) {
   enableRectDraw();
 }

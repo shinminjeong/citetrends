@@ -27,9 +27,9 @@ def plot(request):
     data = json.loads(open(data_path).read())
     print("input_file", len(data), verbose)
     if file_type == "conf":
-        return render(request, "plot_avg.html", {"input_data": data})
+        return render(request, "plot.html", {"plottype": "avg", "input_data": data})
     if file_type == "indv":
-        return render(request, "plot_indv.html", {"input_data": data, "verbose": verbose})
+        return render(request, "plot.html", {"plottype": "indv", "input_data": data, "verbose": verbose})
 
 @csrf_exempt
 def search(request):
