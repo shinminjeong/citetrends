@@ -26,36 +26,61 @@ def plot(request):
     data_path = os.path.join(os.getcwd(), "app/data/", file_type, input_file)
     data = json.loads(open(data_path).read())
     print("input_file", len(data), verbose)
-    if file_type == "conf":
-        return render(request, "plot.html", {"plottype": "avg", "input_data": data})
-    if file_type == "indv":
-        return render(request, "plot.html", {"plottype": "indv", "input_data": data, "verbose": verbose})
+    return render(request, "plot.html", {
+        "plottype": "avg" if file_type == "conf" else "indv",
+        "input_data": data, "verbose": verbose
+    })
 
 @csrf_exempt
 def search(request):
-    selected_papers = request.POST.get("papers")
-    paper_arr = json.loads(selected_papers)
-
+    plottype = request.POST.get("plottype")
     text = ""
     rawinfo = {}
     refcounter = []
-    for p in sorted(paper_arr):
-        name, year, pid = p.split("_")
-        if pid == "average": continue
-        if name not in rawinfo: # load data from raw json file
-            raw_data_path = os.path.join(os.getcwd(), "../data/{}.json".format(name))
-            rawinfo[name] = json.loads(open(raw_data_path).read())
-        title = rawinfo[name][pid]["Title"]
-        refcounter.extend(rawinfo[name][pid]["References"])
-        print(name, year, title)
-        text += "{} {} {}<br>".format(name, year, title)
+    paper_arr = []
+
+    if plottype == "indv":
+        selected_papers = request.POST.get("nodes")
+        paper_arr = json.loads(selected_papers)
+        for p in sorted(paper_arr):
+            name, year, pid = p.split("_")
+            if pid == "average": continue
+            if name not in rawinfo: # load data from raw json file
+                raw_data_path = os.path.join(os.getcwd(), "../data/{}.json".format(name))
+                rawinfo[name] = json.loads(open(raw_data_path).read())
+            title = rawinfo[name][pid]["Title"]
+            refcounter.extend(rawinfo[name][pid]["References"])
+            print(name, year, title)
+            text += "{} {} {}<br>".format(name, year, title)
+
+    else: # year average
+        selected_years = request.POST.get("nodes")
+        avg_year_arr = json.loads(selected_years)
+        print(avg_year_arr)
+        for p in sorted(avg_year_arr):
+            name, year = p.split("_")
+            if year == "Anchor": continue
+            if name not in rawinfo: # load data from raw json file
+                raw_data_path = os.path.join(os.getcwd(), "../data/{}.json".format(name))
+                rawinfo[name] = json.loads(open(raw_data_path).read())
+            y_papers = []
+            for pid, paper in rawinfo[name].items():
+                print(paper["Year"], year)
+                if paper["Year"] == int(year):
+                    # print(paper)
+                    refcounter.extend(paper["References"])
+                    y_papers.append(pid)
+            paper_arr.extend(y_papers)
+            print(name, year, len(y_papers))
+            text += "{} {} - # of paper: {}<br>".format(name, year, len(y_papers))
+
     print("-------------------------------")
     print("Total {} paper selected".format(len(paper_arr)))
     print("-------------------------------")
     text += "<br>Total {} paper selected<br><br>".format(len(paper_arr))
     for conf_id, num in Counter(refcounter).most_common(10):
         print(get_conf_name(conf_id), num)
-        text += "{} {}<br>".format(get_conf_name(conf_id), num)
+        text += "%s %d (%.2f)<br>"%(get_conf_name(conf_id), num, num/len(paper_arr))
     print("-------------------------------")
     text += "<br>"
 

@@ -194,8 +194,9 @@ function send_selected(data) {
   $.ajax({
     type: "POST",
     url: "/search",
-    data: { "papers":
-      JSON.stringify(data)
+    data: {
+      "plottype": plottype,
+      "nodes": JSON.stringify(data)
     },
     success: function (result) {
       // console.log("success", result["text"]);
