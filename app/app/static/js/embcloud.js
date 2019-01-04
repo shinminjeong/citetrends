@@ -328,7 +328,7 @@ function zoom_in_node(nid) {
   for (var e in every_nodes[gname]) {
     var name = every_nodes[gname][e].node.id.split("_");
     var year_n = name[1], pid = name[2];
-    console.log(plottype, gname, year_n, pid, e)
+    // console.log(plottype, gname, year_n, pid, e)
     if (pid == "average" || year_n%5 == 0) {
       every_nodes[gname][e].attr("r", nsize).attr("opacity", 1)
           .fill(colors[glist.indexOf(gname)%colors.length]);
