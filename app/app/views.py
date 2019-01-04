@@ -23,17 +23,20 @@ def plot(request):
     input_file = request.GET.get("input")
     file_type = request.GET.get("type")
     verbose = request.GET.get("verbose")
+    grid_test = request.GET.get("grid_test")
     data_path = os.path.join(os.getcwd(), "app/data/", file_type, input_file)
     data = json.loads(open(data_path).read())
     print("input_file", len(data), verbose)
     return render(request, "plot.html", {
         "plottype": "avg" if file_type == "conf" else "indv",
-        "input_data": data, "verbose": verbose
+        "input_data": data, "verbose": verbose,
+        "grid_test": grid_test
     })
 
 @csrf_exempt
 def search(request):
     plottype = request.POST.get("plottype")
+    summary = request.POST.get("summary") == "true"
     text = ""
     rawinfo = {}
     refcounter = []
@@ -81,5 +84,11 @@ def search(request):
         text += "%s %d (%.2f)<br>"%(get_conf_name(conf_id), num, num/len(paper_arr))
     print("-------------------------------")
     text += "<br>"
+
+    ## only return summary
+    if summary: text = ""
+    for conf_id, num in Counter(refcounter).most_common(5):
+        if num/len(paper_arr) < 0.3: continue
+        text += "%s %d (%.2f)<br>"%(get_conf_name(conf_id), num, num/len(paper_arr))
 
     return JsonResponse({"text": text})

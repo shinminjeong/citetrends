@@ -26,9 +26,11 @@ var verbose_text = document.getElementById("verbose_div");
 var data = {{ input_data|safe }};
 var plottype = "{{ plottype }}";
 var verbose = "{{ verbose }}" == "true";
+var grid_test = "{{ grid_test }}" == "true";
 drawCloud(data, plottype);
-if (verbose) {
-  enableRectDraw();
+if (verbose) { enableRectDraw(); }
+if (grid_test) {
+  drawGrids(200, 100);
 }
 </script>
 </html>

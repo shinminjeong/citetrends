@@ -187,15 +187,16 @@ function get_papers_in_rect(element){
     }
   }
   // console.log(selectedcircles);
-  send_selected(selectedcircles);
+  return selectedcircles;
 }
 
-function send_selected(data) {
+function print_selected(data) {
   $.ajax({
     type: "POST",
     url: "/search",
     data: {
       "plottype": plottype,
+      "summary": false,
       "nodes": JSON.stringify(data)
     },
     success: function (result) {
@@ -207,6 +208,40 @@ function send_selected(data) {
       console.log("error");
     }
   });
+}
+
+function print_selected_summary(data, element) {
+  $.ajax({
+    type: "POST",
+    url: "/search",
+    data: {
+      "plottype": plottype,
+      "summary": true,
+      "nodes": JSON.stringify(data)
+    },
+    success: function (result) {
+      element.innerHTML += result["text"];
+    },
+    error: function (result) {
+      console.log("error");
+    }
+  });
+}
+
+function drawGrids(grid_w, grid_h) {
+  dim_every_nodes(0.3);
+  for (var x = 0; x < width; x += grid_w) {
+    for (var y = 0; y < height; y += grid_h) {
+      element = document.createElement('div');
+      element.className = 'select_rectangle'
+      element.style.left = x + 'px';
+      element.style.top = y + 'px';
+      element.style.width = grid_w + 'px';
+      element.style.height = grid_h + 'px';
+      canvas.appendChild(element)
+      print_selected_summary(get_papers_in_rect(element), element);
+    }
+  }
 }
 
 function draw_rect_move(e) {
@@ -222,7 +257,7 @@ function draw_rect_move(e) {
 function draw_rect_click(e) {
   if (hover_switch && !hover_switch.checked) return;
   if (element !== null) {
-      get_papers_in_rect(element);
+      print_selected(get_papers_in_rect(element));
       element = null;
       canvas.style.cursor = "default";
       console.log("finsihed.");

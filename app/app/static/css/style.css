@@ -22,6 +22,11 @@ tspan {
 	overflow-y: scroll;
 }
 
+.select_rectangle {
+	font-size: 12px;
+	overflow-y: scroll;
+}
+
 #hover_switch {
 	position: absolute;
 	top: 90%;
