@@ -197,20 +197,20 @@ def aggr_venues(data):
         venues.extend(ref)
     return venues
 
-def get_vector(cname, bov, author_venue, year=0):
+def get_vector(cname, bov, author_venue, year=0, norm_ref=True):
     c = Counter(author_venue)
     author_arr = [float(c[b]) for b in bov]
     res_arr = np.array(author_arr)
     if year != 0:
         res_arr /= name_id_pairs[cname]["numpaper"][year]
-    # if norm:
-    #     res_arr /= name_id_pairs[cname]["totalpaper"]
+    if norm_ref and len(author_venue) > 0:
+        res_arr /= len(author_venue)
     return res_arr
 
 name_id_pairs = {
     # "steve-blackburn": {"id": 2146610949, "type":"author", "numpaper":{}},
     # "antony-l-hosking": {"id": 732573042, "type":"author", "numpaper":{}},
-    "kathryn-mckinley": {"id": 2115847858, "type":"author", "numpaper":{}},
+    # "kathryn-mckinley": {"id": 2115847858, "type":"author", "numpaper":{}},
     # "cheng-soon-ong": {"id": 2609987651, "type":"author", "numpaper":{}},
     # "robert-c-williamson": {"id": 2122328552, "type":"author", "numpaper":{}},
     # "alexander-j-smola": {"id": 1972291593, "type":"author", "numpaper":{}},
@@ -312,11 +312,12 @@ def generate_year_trends_plots():
             # vec["{}_{}".format(name, y)] = get_vector(name, sorted_list_bov, ref, year=0)
             vec["{}_{}".format(name, y)] = get_vector(name, sorted_list_bov, ref, year=y)
 
+    # for name in ["POPL","PLDI","OOPSLA","ISCA","MICRO","ASPLOS","ICFP","OSDI","ICML","NIPS","WSDM","CIKM","ICWSM","WWW","AAAI"]:
     # for name in ["ICML","NIPS","WSDM","CIKM","ICWSM","WWW","AAAI"]:
-    for name in ["ICML","NIPS"]:
-        vec["{}_Anchor".format(name)] = generate_one_hot_vec(sorted_list_bov, name_id_pairs[name]["id"])
+    # for name in ["ICML","NIPS"]:
+        # vec["{}_Anchor".format(name)] = generate_one_hot_vec(sorted_list_bov, name_id_pairs[name]["id"])
     # print_cos_similarity(vec)
-    reduce_and_save(vec, number_of_venues, "nlp")
+    reduce_and_save(vec, number_of_venues, "n_ml_2")
 
 
 def reduce_and_save(vec, number_of_venues, tag):
@@ -370,10 +371,10 @@ def generate_indv_paper_plots():
             vec["{}_{}_average".format(cname, y)] = get_vector(cname, sorted_list_bov, ref, year=y)
 
     # print(vec)
-    reduce_and_save(vec, number_of_venues, "kathryn")
+    reduce_and_save(vec, number_of_venues, "n_ml")
 
 
 if __name__ == '__main__':
     # download_data_save_as_json()
-    # generate_year_trends_plots()
-    generate_indv_paper_plots()
+    generate_year_trends_plots()
+    # generate_indv_paper_plots()

@@ -37,12 +37,14 @@ def plot(request):
 def search(request):
     plottype = request.POST.get("plottype")
     summary = request.POST.get("summary") == "true"
+    print_threshold = 0.1
     text = ""
     rawinfo = {}
     refcounter = []
     paper_arr = []
 
     if plottype == "indv":
+        print_threshold = 0.3
         selected_papers = request.POST.get("nodes")
         paper_arr = json.loads(selected_papers)
         for p in sorted(paper_arr):
@@ -57,6 +59,7 @@ def search(request):
             text += "{} {} {}<br>".format(name, year, title)
 
     else: # year average
+        print_threshold = 0.1
         selected_years = request.POST.get("nodes")
         avg_year_arr = json.loads(selected_years)
         for p in sorted(avg_year_arr):
@@ -89,7 +92,7 @@ def search(request):
     if summary:
         text = ""
         for conf_id, num in Counter(refcounter).most_common(5):
-            if num/len(paper_arr) < 0.3: continue
+            if num/len(paper_arr) < print_threshold: continue
             text += "%s %d (%.2f)<br>"%(get_conf_name(conf_id), num, num/len(paper_arr))
 
     return JsonResponse({"text": text})
