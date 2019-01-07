@@ -86,9 +86,10 @@ def search(request):
     text += "<br>"
 
     ## only return summary
-    if summary: text = ""
-    for conf_id, num in Counter(refcounter).most_common(5):
-        if num/len(paper_arr) < 0.3: continue
-        text += "%s %d (%.2f)<br>"%(get_conf_name(conf_id), num, num/len(paper_arr))
+    if summary:
+        text = ""
+        for conf_id, num in Counter(refcounter).most_common(5):
+            if num/len(paper_arr) < 0.3: continue
+            text += "%s %d (%.2f)<br>"%(get_conf_name(conf_id), num, num/len(paper_arr))
 
     return JsonResponse({"text": text})
