@@ -13,6 +13,9 @@ from ent2Vec.utils import get_conf_name
 def main(request):
     return render(request, "main.html")
 
+def fos(request):
+    return render(request, "fos.html")
+
 def menu(request):
     file_type = request.GET.get("type")
     data_path = os.path.join(os.getcwd(), "app/data", file_type)
@@ -59,7 +62,7 @@ def search(request):
             text += "{} {} {}<br>".format(name, year, title)
 
     else: # year average
-        print_threshold = 0.1
+        print_threshold = 0.0
         selected_years = request.POST.get("nodes")
         avg_year_arr = json.loads(selected_years)
         for p in sorted(avg_year_arr):
