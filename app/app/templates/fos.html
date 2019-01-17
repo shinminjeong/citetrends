@@ -38,7 +38,7 @@ var svg = d3.select("svg"),
     g = svg.append("g").attr("transform", "translate(180,0)");
 
 var tree = d3.cluster()
-    .size([height, width - 260]);
+    .size([height, width - 500]);
 
 var stratify = d3.stratify()
     .parentId(function(d) { return d.id.substring(0, d.id.lastIndexOf(".")); });
@@ -80,12 +80,21 @@ d3.csv("{% static 'graph/fos.csv' %}", function(error, data) {
 
   node.append("text")
       .attr("dy", 3)
-      .attr("x", function(d) { return d.children ? -10 : 10; })
+      .attr("x", function(d) {
+        var padding = 10;
+        // if (d.data.value < 50000) padding += 100
+        // if (d.data.value < 40000) padding += 100
+        // if (d.data.value < 30000) padding += 100
+        // if (d.data.value < 20000) padding += 100
+        return d.children ? -10 : padding;
+      })
       .style("text-anchor", function(d) { return d.children ? "end" : "start"; })
       .text(function(d) {
-        var t = d.id.substring(d.id.lastIndexOf(".") + 1);
-        // if (!d.children)
+        var t = "";
+        if (d.data.value > 20000) {
+          t += d.id.substring(d.id.lastIndexOf(".") + 1);
           t += " (" + d.data.value + ")";
+        }
         return t;
       });
 });
