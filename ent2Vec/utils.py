@@ -286,6 +286,7 @@ def get_vector(cname, bov, author_venue, year=0, norm_ref=True):
 
 def generate_data():
     for cname, value in name_id_pairs.items():
+        print("generate_data", cname)
         data = get_paper_info(value["id"], value["type"])
         save_as_file(cname, data)
 
