@@ -2,7 +2,7 @@ name_id_pairs = {
     # "steve-blackburn": {"id": 2146610949, "type":"author", "numpaper":{}},
     # "antony-l-hosking": {"id": 732573042, "type":"author", "numpaper":{}},
     # "kathryn-mckinley": {"id": 2115847858, "type":"author", "numpaper":{}},
-    "cheng-soon-ong": {"id": [2609987651,2761172742,2793105411,2695945378], "type":"author", "numpaper":{}},
+    # "cheng-soon-ong": {"id": [2609987651,2761172742,2793105411,2695945378], "type":"author", "numpaper":{}},
     # "robert-c-williamson": {"id": 2122328552, "type":"author", "numpaper":{}},
     # "alexander-j-smola": {"id": 1972291593, "type":"author", "numpaper":{}},
     # "christopher-d-manning": {"id": 2149153931, "type":"author", "numpaper":{}},
@@ -25,4 +25,5 @@ name_id_pairs = {
     # "AAAI": {"id": 1184914352, "type":"conf", "numpaper":{}},
     # "ISMB": {"id": 1140680567, "type":"conf", "numpaper":{}},
     # "Recomb": {"id": 1188965700, "type":"conf", "numpaper":{}},
+    # "Bioinformatics": {"id": 52395412, "type":"journal", "numpaper":{}},
 }

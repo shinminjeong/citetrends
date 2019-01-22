@@ -166,11 +166,12 @@ def search_pref(plist):
     return refdict
 
 def search_pfos(plist):
+    print("search_pfos input paper", len(plist))
     refdict = {p:[] for p in plist}
     query = {
-        "size": 100,
+        "size": 10000,
         "query": {
-            "match": {
+            "terms": {
                 "PaperId": plist
             }
         }
@@ -213,8 +214,10 @@ def get_paper_info(id, type):
             if "JournalId" in r["_source"]:
                 confMap[int(r["_id"])] = int(r["_source"]["JournalId"])
 
-    # fos_result = p.map(search_pfos, [paperids])
-    # fosMap = dict()
+    fosMap = dict()
+    fos_result_temp = p.map(search_pfos, div_pids)
+    for fos_d in fos_result_temp:
+        fosMap.update(fos_d)
 
     """
     return dictionary
@@ -228,7 +231,9 @@ def get_paper_info(id, type):
     """
     paper_info_dict = dict()
     for p in paperids:
-        paper_info_dict[p] = {"Year": yearMap[p], "Title": titleMap[p], "References":[]}
+        paper_info_dict[p] = {
+            "Year": yearMap[p], "Title": titleMap[p],
+            "References":[], "Fos":fosMap[p]}
         for ref in ref_result[p]:
             if ref in confMap:
                 paper_info_dict[p]["References"].append(confMap[ref])
