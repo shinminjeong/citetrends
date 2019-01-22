@@ -8,12 +8,15 @@ from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
+from names import name_id_pairs
+
 ES_HOSTS = "130.56.249.107:9200"
 query_matchall = {
     "query": {
         "match_all": {}
     }
 }
+
 
 def query_es(index, query=query_matchall):
     es_conn = Elasticsearch(ES_HOSTS)
@@ -134,9 +137,19 @@ def search_pref(plist):
     return refdict
 
 def get_paper_ref(id, type):
-    res = search_papers(id, type)
-    yearMap = {int(r["_id"]):int(r["_source"]["Year"]) for r in res}
-    titleMap = {int(r["_id"]):r["_source"]["OriginalTitle"] for r in res}
+    yearMap = {}
+    titleMap = {}
+    if isinstance(id, list):
+        for n_id in id:
+            res = search_papers(n_id, type)
+            for r in res:
+                yearMap[int(r["_id"])] = int(r["_source"]["Year"])
+                titleMap[int(r["_id"])] = r["_source"]["OriginalTitle"]
+    else:
+        res = search_papers(id, type)
+        yearMap = {int(r["_id"]):int(r["_source"]["Year"]) for r in res}
+        titleMap = {int(r["_id"]):r["_source"]["OriginalTitle"] for r in res}
+
     paperids = list(yearMap.keys())
 
     num_threads = 8
@@ -207,32 +220,6 @@ def get_vector(cname, bov, author_venue, year=0, norm_ref=True):
         res_arr /= len(author_venue)
     return res_arr
 
-name_id_pairs = {
-    # "steve-blackburn": {"id": 2146610949, "type":"author", "numpaper":{}},
-    # "antony-l-hosking": {"id": 732573042, "type":"author", "numpaper":{}},
-    # "kathryn-mckinley": {"id": 2115847858, "type":"author", "numpaper":{}},
-    # "cheng-soon-ong": {"id": 2609987651, "type":"author", "numpaper":{}},
-    # "robert-c-williamson": {"id": 2122328552, "type":"author", "numpaper":{}},
-    # "alexander-j-smola": {"id": 1972291593, "type":"author", "numpaper":{}},
-    # "christopher-d-manning": {"id": 2149153931, "type":"author", "numpaper":{}},
-    # "richard-socher": {"id": 1964982643, "type":"author", "numpaper":{}},
-    # "andrew-y-ng": {"id": 2104401652, "type":"author", "numpaper":{}},
-    # "POPL": {"id": 1160032607, "type":"conf", "numpaper":{}},
-    # "PLDI": {"id": 1127352206, "type":"conf", "numpaper":{}},
-    # "OOPSLA": {"id": 1138732554, "type":"conf", "numpaper":{}},
-    # "ISCA": {"id": 1131341566, "type":"conf", "numpaper":{}},
-    # "MICRO": {"id": 1150919317, "type":"conf", "numpaper":{}},
-    # "ASPLOS": {"id": 1174091362, "type":"conf", "numpaper":{}},
-    # "ICFP": {"id": 1162793720, "type":"conf", "numpaper":{}},
-    # "OSDI": {"id": 1185109434, "type":"conf", "numpaper":{}},
-    # "ICML": {"id": 1180662882, "type":"conf", "numpaper":{}},
-    # "NIPS": {"id": 1127325140, "type":"conf", "numpaper":{}},
-    # "WSDM": {"id": 1120384002, "type":"conf", "numpaper":{}},
-    # "CIKM": {"id": 1194094125, "type":"conf", "numpaper":{}},
-    # "ICWSM": {"id": 1124713781, "type":"conf", "numpaper":{}},
-    # "WWW": {"id": 1135342153, "type":"conf", "numpaper":{}},
-    # "AAAI": {"id": 1184914352, "type":"conf", "numpaper":{}},
-}
 
 def generate_data():
     for cname, value in name_id_pairs.items():
@@ -269,11 +256,16 @@ def reduce_vec_pca(vec, number_of_venues):
     return result
 
 def reduce_vec_tsne(vec, p, number_of_venues):
-    tsne = TSNE(n_components=2, perplexity=p)
+    # first reduce to 50D with PCA
+    pca = PCA(n_components=50)
     X = np.zeros((len(vec),number_of_venues))
     for i, v in enumerate(vec.values()):
         X[i] = v
-    X_tsne = tsne.fit_transform(X)
+    pca.fit(X)
+    X_pca = pca.transform(X)
+
+    tsne = TSNE(n_components=2, perplexity=p)
+    X_tsne = tsne.fit_transform(X_pca)
     # print("original shape:   ", X.shape)
     # print("transformed shape:", X_tsne.shape)
     result = {}
@@ -317,7 +309,7 @@ def generate_year_trends_plots():
     # for name in ["ICML","NIPS"]:
         # vec["{}_Anchor".format(name)] = generate_one_hot_vec(sorted_list_bov, name_id_pairs[name]["id"])
     # print_cos_similarity(vec)
-    reduce_and_save(vec, number_of_venues, "n_ml_2")
+    reduce_and_save(vec, number_of_venues, "50D_n_ml")
 
 
 def reduce_and_save(vec, number_of_venues, tag):
@@ -375,6 +367,6 @@ def generate_indv_paper_plots():
 
 
 if __name__ == '__main__':
-    # download_data_save_as_json()
-    generate_year_trends_plots()
+    download_data_save_as_json()
+    # generate_year_trends_plots()
     # generate_indv_paper_plots()
