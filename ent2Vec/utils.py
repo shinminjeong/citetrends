@@ -8,7 +8,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
-from names import name_id_pairs
+from ent2Vec.names import name_id_pairs
 
 ES_HOSTS = "130.56.249.107:9200"
 query_matchall = {
@@ -85,15 +85,40 @@ def search_paper_conf(id):
     print(len(result))
     return result
 
+def search_paper_journal(id):
+    result = []
+    count = 0
+    total = size = 1000
+    while count < total:
+        query = {
+            "from": count,
+            "size": size,
+            "_source": ["_id", "Year", "OriginalTitle"],
+            "query": {
+                "match": {
+                    "JournalId": id
+                }
+            }
+        }
+        resconf = query_es("papers", query)
+        total = resconf["total"]
+        result.extend(resconf["hits"])
+        count += size
+    print(len(result))
+    return result
+
 
 def search_papers(id, type):
     if type == "author":
         return search_paper_author(id)
     if type == "conf":
         return search_paper_conf(id)
+    if type == "journal":
+        return search_paper_journal(id)
 
 
 def get_conf_from_pids(plist):
+    # print("get_conf_from_pids", len(plist))
     query = {
         "size": 10000,
         "_source": ["ConferenceSeriesId", "JournalId"],
@@ -122,6 +147,7 @@ def search_pref_indv(paper):
     return refdict
 
 def search_pref(plist):
+    # print("search_pref input paper", len(plist))
     refdict = {p:[] for p in plist}
     query = {
         "size": 10000,
@@ -131,12 +157,31 @@ def search_pref(plist):
             }
         }
     }
+    # cnt = []
     reflist = query_es("paperreferences", query)["hits"]
     for ref in reflist:
+        # cnt.append(ref["_source"]["PaperId"])
         refdict[ref["_source"]["PaperId"]].append(ref["_source"]["PaperReferenceId"])
+    # print("search_pref result", len(set(cnt)))
     return refdict
 
-def get_paper_ref(id, type):
+def search_pfos(plist):
+    refdict = {p:[] for p in plist}
+    query = {
+        "size": 100,
+        "query": {
+            "match": {
+                "PaperId": plist
+            }
+        }
+    }
+    reflist = query_es("paperfieldsofstudy", query)["hits"]
+    for ref in reflist:
+        refdict[ref["_source"]["PaperId"]].append((ref["_source"]["FieldOfStudyId"], ref["_source"]["Similarity"]))
+    return refdict
+
+
+def get_paper_info(id, type):
     yearMap = {}
     titleMap = {}
     if isinstance(id, list):
@@ -149,12 +194,15 @@ def get_paper_ref(id, type):
         res = search_papers(id, type)
         yearMap = {int(r["_id"]):int(r["_source"]["Year"]) for r in res}
         titleMap = {int(r["_id"]):r["_source"]["OriginalTitle"] for r in res}
-
     paperids = list(yearMap.keys())
+    div_pids = [paperids[i:i+1000] for i in range(0, len(paperids), 1000)]
 
     num_threads = 8
     p = Pool(num_threads)
-    ref_result = p.apply_async(search_pref, [paperids]).get()
+    ref_result = dict()
+    ref_result_temp = p.map(search_pref, div_pids)
+    for ref_d in ref_result_temp:
+        ref_result.update(ref_d)
 
     confMap = dict()
     conf_result = p.map(get_conf_from_pids, ref_result.values())
@@ -164,17 +212,27 @@ def get_paper_ref(id, type):
                 confMap[int(r["_id"])] = int(r["_source"]["ConferenceSeriesId"])
             if "JournalId" in r["_source"]:
                 confMap[int(r["_id"])] = int(r["_source"]["JournalId"])
+
+    # fos_result = p.map(search_pfos, [paperids])
+    # fosMap = dict()
+
     """
     return dictionary
-    {paperid: {"Year": year, "Title": title, "References": [list of venue ids]}}
+    {paperid: {
+        "Year": year,
+        "Title": title,
+        "References": [list of venue ids]
+        "FoS": [list of (fos_id, score)]
+        }
+    }
     """
-    paper_ref_dict = dict()
+    paper_info_dict = dict()
     for p in paperids:
-        paper_ref_dict[p] = {"Year": yearMap[p], "Title": titleMap[p], "References":[]}
+        paper_info_dict[p] = {"Year": yearMap[p], "Title": titleMap[p], "References":[]}
         for ref in ref_result[p]:
             if ref in confMap:
-                paper_ref_dict[p]["References"].append(confMap[ref])
-    return paper_ref_dict
+                paper_info_dict[p]["References"].append(confMap[ref])
+    return paper_info_dict
 
 
 def save_as_file(filename, dictdata):
@@ -223,7 +281,7 @@ def get_vector(cname, bov, author_venue, year=0, norm_ref=True):
 
 def generate_data():
     for cname, value in name_id_pairs.items():
-        data = get_paper_ref(value["id"], value["type"])
+        data = get_paper_info(value["id"], value["type"])
         save_as_file(cname, data)
 
 
@@ -282,7 +340,7 @@ def generate_one_hot_vec(sorted_list_bov, ref_id):
     vec = [1 if b==ref_id else 0 for b in sorted_list_bov]
     return vec
 
-def generate_year_trends_plots():
+def generate_year_trends_plots(name_flag):
     data = generate_bov_year()
 
     ## calculate total bag of venue
@@ -309,20 +367,17 @@ def generate_year_trends_plots():
     # for name in ["ICML","NIPS"]:
         # vec["{}_Anchor".format(name)] = generate_one_hot_vec(sorted_list_bov, name_id_pairs[name]["id"])
     # print_cos_similarity(vec)
-    reduce_and_save(vec, number_of_venues, "50D_n_ml")
+    reduce_and_save(vec, number_of_venues, name_flag)
 
 
 def reduce_and_save(vec, number_of_venues, tag):
     reduce_vec = reduce_vec_pca(vec, number_of_venues)
     # print(reduce_vec)
-    save_plot_result("pca_{}".format(tag), reduce_vec)
+    save_plot_result("{}_pca".format(tag), reduce_vec)
 
-    # for i in [1,2,3]:
-    for p in [5, 10, 20, 40, 80]:
+    for p in [10, 20, 40, 80, 160]:
         reduce_t_vec = reduce_vec_tsne(vec, p, number_of_venues)
-        # print(reduce_vec)
-        # save_plot_result("tsne_{}_{}_{}".format(tag, i, p), reduce_t_vec)
-        save_plot_result("tsne_{}_{}".format(tag, p), reduce_t_vec)
+        save_plot_result("{}_tsne_{}".format(tag, p), reduce_t_vec)
 
 
 def generate_bov_paper():
@@ -335,7 +390,7 @@ def generate_bov_paper():
                 paper_vectors["{}_{}_{}".format(cname, value["Year"], p)] = value["References"]
     return paper_vectors
 
-def generate_indv_paper_plots():
+def generate_indv_paper_plots(name_flag):
     data = generate_bov_paper()
 
     bag_of_venues = set()
@@ -363,10 +418,10 @@ def generate_indv_paper_plots():
             vec["{}_{}_average".format(cname, y)] = get_vector(cname, sorted_list_bov, ref, year=y)
 
     # print(vec)
-    reduce_and_save(vec, number_of_venues, "n_ml")
+    reduce_and_save(vec, number_of_venues, name_flag)
 
 
 if __name__ == '__main__':
     download_data_save_as_json()
-    # generate_year_trends_plots()
+    # generate_year_trends_plots("BoV_nref_Cheng")
     # generate_indv_paper_plots()

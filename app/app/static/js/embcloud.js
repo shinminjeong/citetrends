@@ -14,10 +14,9 @@ var draw_legend = draw.group();
 
 var nsize = 2, nsizeb = 6;
 var bbox = [width,-width,height,-height,0,0]; // (x_min, x_max, y_min, y_max, x_center, y_center)
-var colors = ["#065143", "#129490",
-  "#70B77E", "#E0A890", "#CE1483", "#fe4a49",
-  "#A2DDE1", "#FCAB10", "#ff9234", "#fd0054",
-  "#0b409c", "#5e227f"]
+var colors = ["#065143", "#129490", "#70B77E", "#A2DDE1", "#4363d8",
+  "#E0A890", "#fe4a49", "#FCAB10", "#ff9234", "#e6194B",
+  "#0b409c", "#5e227f", "#caabd8", "#ff6bd6", ]
 var glist = [];
 var yearSet = new Set();
 var group_flag = {};
