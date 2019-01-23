@@ -23,6 +23,12 @@ def query_es(index, query=query_matchall):
     res = es_conn.search(index = index, body=query, request_timeout=300)
     return res["hits"]
 
+def get_fos_name(id):
+    es_conn = Elasticsearch(ES_HOSTS)
+    res = es_conn.get(index = "fieldsofstudy", doc_type="doc", id=id)
+    return "{} ({})".format(res["_source"]["DisplayName"], res["_source"]["Level"])
+
+
 def get_conf_name(id):
     es_conn = Elasticsearch(ES_HOSTS)
     exits = es_conn.exists(index = "conferenceseries", doc_type="doc", id=id)
@@ -166,7 +172,7 @@ def search_pref(plist):
     return refdict
 
 def search_pfos(plist):
-    print("search_pfos input paper", len(plist))
+    # print("search_pfos input paper", len(plist))
     refdict = {p:[] for p in plist}
     query = {
         "size": 10000,
@@ -249,6 +255,24 @@ def save_plot_result(filename, dictdata):
         json.dump(dictdata, outfile)
 
 
+def get_set_of_fos_by_year(cname, res):
+    fields = []
+    for p, r in res.items():
+        if "Fos" in r and "Year" in r:
+            fields.append((r["Year"], r["Fos"]))
+    setfos = {}
+    for y, ref in fields:
+        # count numpaper each year
+        if y in name_id_pairs[cname]["numpaper"]:
+            name_id_pairs[cname]["numpaper"][y] += 1
+        else:
+            name_id_pairs[cname]["numpaper"][y] = 1
+
+        if y not in setfos:
+            setfos[y] = []
+        setfos[y].extend(ref)
+    return setfos
+
 def get_set_of_venues_by_year(cname, res):
     references = []
     for p, r in res.items():
@@ -267,13 +291,26 @@ def get_set_of_venues_by_year(cname, res):
         venues[y].extend(ref)
     return venues
 
-def aggr_venues(data):
+def aggr_venues(emb_type, data):
     venues = []
     for y, ref in data.items():
-        venues.extend(ref)
+        if emb_type == "BoV":
+            venues.extend(ref)
+        elif emb_type == "BoF":
+            venues.extend([r[0] for r in ref])
+        else:
+            print("(aggr_venues) ERROR: wrong embedding type", emb_type)
     return venues
 
-def get_vector(cname, bov, author_venue, year=0, norm_ref=True):
+def get_vector(emb_type, cname, bov, author_venue, year=0, norm_ref=True):
+    if emb_type == "BoV":
+        return get_vector_cnt(cname, bov, author_venue, year=year, norm_ref=norm_ref)
+    elif emb_type == "BoF":
+        return get_vector_score(cname, bov, author_venue, year=year, norm_ref=norm_ref)
+    else:
+        print("(get_vector) ERROR: wrong embedding type", emb_type)
+
+def get_vector_cnt(cname, bov, author_venue, year=0, norm_ref=True):
     c = Counter(author_venue)
     author_arr = [float(c[b]) for b in bov]
     res_arr = np.array(author_arr)
@@ -281,6 +318,18 @@ def get_vector(cname, bov, author_venue, year=0, norm_ref=True):
         res_arr /= name_id_pairs[cname]["numpaper"][year]
     if norm_ref and len(author_venue) > 0:
         res_arr /= len(author_venue)
+    return res_arr
+
+def get_vector_score(cname, bov, author_fos, year=0, norm_ref=True):
+    c = {fos:0 for fos in bov}
+    for fos, score in author_fos:
+        c[fos] += score
+    author_arr = [float(c[b]) for b in bov]
+    res_arr = np.array(author_arr)
+    if year != 0:
+        res_arr /= name_id_pairs[cname]["numpaper"][year]
+    if norm_ref and len(author_fos) > 0:
+        res_arr /= len(author_fos)
     return res_arr
 
 
@@ -291,13 +340,18 @@ def generate_data():
         save_as_file(cname, data)
 
 
-def generate_bov_year():
+def generate_emb_year(emb_type):
     conf_vectors = {}
     for cname in name_id_pairs.keys():
         with open("../data/{}.json".format(cname), "r") as infile:
             data = json.load(infile)
             name_id_pairs[cname]["totalpaper"] = len(data)
-            conf_vectors[cname] = get_set_of_venues_by_year(cname, data)
+            if emb_type == "BoV":
+                conf_vectors[cname] = get_set_of_venues_by_year(cname, data)
+            elif emb_type == "BoF":
+                conf_vectors[cname] = get_set_of_fos_by_year(cname, data)
+            else:
+                print("(generate_emb_year) ERROR: wrong embedding type", emb_type)
     return conf_vectors
 
 def print_cos_similarity(vec):
@@ -321,6 +375,7 @@ def reduce_vec_pca(vec, number_of_venues):
 
 def reduce_vec_tsne(vec, p, number_of_venues):
     # first reduce to 50D with PCA
+    # print(len(vec), number_of_venues)
     pca = PCA(n_components=50)
     X = np.zeros((len(vec),number_of_venues))
     for i, v in enumerate(vec.values()):
@@ -346,14 +401,14 @@ def generate_one_hot_vec(sorted_list_bov, ref_id):
     vec = [1 if b==ref_id else 0 for b in sorted_list_bov]
     return vec
 
-def generate_year_trends_plots(name_flag):
-    data = generate_bov_year()
+
+def generate_year_trends_plots(emb_type, name_flag):
+    data = generate_emb_year(emb_type)
 
     ## calculate total bag of venue
     bag_of_venues = set()
-    sorted_list_bov = list()
     for name, y_venues in data.items():
-        venues = aggr_venues(y_venues)
+        venues = aggr_venues(emb_type, y_venues)
         print("{}: len(papers)={}, len(venues)={}, len(set(venues))={}".format(name, name_id_pairs[name]["totalpaper"], len(venues), len(set(venues))))
         print(name_id_pairs[name]["numpaper"])
         [bag_of_venues.add(v) for v in venues]
@@ -365,15 +420,15 @@ def generate_year_trends_plots(name_flag):
     vec = {}
     for name, y_venues in data.items():
         for y, ref in y_venues.items():
-            # vec["{}_{}".format(name, y)] = get_vector(name, sorted_list_bov, ref, year=0)
-            vec["{}_{}".format(name, y)] = get_vector(name, sorted_list_bov, ref, year=y)
+            vec["{}_{}".format(name, y)] = get_vector(emb_type, name, sorted_list_bov, ref, year=y)
 
+    # generate anchor points
     # for name in ["POPL","PLDI","OOPSLA","ISCA","MICRO","ASPLOS","ICFP","OSDI","ICML","NIPS","WSDM","CIKM","ICWSM","WWW","AAAI"]:
     # for name in ["ICML","NIPS","WSDM","CIKM","ICWSM","WWW","AAAI"]:
     # for name in ["ICML","NIPS"]:
         # vec["{}_Anchor".format(name)] = generate_one_hot_vec(sorted_list_bov, name_id_pairs[name]["id"])
     # print_cos_similarity(vec)
-    reduce_and_save(vec, number_of_venues, name_flag)
+    reduce_and_save(vec, number_of_venues, "{}_{}".format(emb_type, name_flag))
 
 
 def reduce_and_save(vec, number_of_venues, tag):
@@ -386,22 +441,27 @@ def reduce_and_save(vec, number_of_venues, tag):
         save_plot_result("{}_tsne_{}".format(tag, p), reduce_t_vec)
 
 
-def generate_bov_paper():
+def generate_emb_paper(emb_type):
     paper_vectors = {}
     for cname in name_id_pairs.keys():
         with open("../data/{}.json".format(cname), "r") as infile:
             data = json.load(infile)
             name_id_pairs[cname]["totalpaper"] = len(data)
             for p, value in data.items():
-                paper_vectors["{}_{}_{}".format(cname, value["Year"], p)] = value["References"]
+                if emb_type == "BoV":
+                    paper_vectors["{}_{}_{}".format(cname, value["Year"], p)] = value["References"]
+                elif emb_type == "BoF":
+                    paper_vectors["{}_{}_{}".format(cname, value["Year"], p)] = value["Fos"]
+                else:
+                    print("(generate_emb_paper) ERROR: wrong embedding type", emb_type)
     return paper_vectors
 
-def generate_indv_paper_plots(name_flag):
-    data = generate_bov_paper()
+def generate_indv_paper_plots(emb_type, name_flag):
+    data = generate_emb_paper(emb_type)
 
     bag_of_venues = set()
     sorted_list_bov = list()
-    venues = aggr_venues(data)
+    venues = aggr_venues(emb_type, data)
     print("len(papers)={}, len(venues)={}, len(set(venues))={}".format(len(data), len(venues), len(set(venues))))
     [bag_of_venues.add(v) for v in venues]
     print("Total # of venues = ", len(bag_of_venues))
@@ -415,19 +475,19 @@ def generate_indv_paper_plots(name_flag):
             continue
         cname, y, pid = paper.split("_")
         # print(cname, y, pid, len(ref_venuew))
-        vec[paper] = get_vector(cname, sorted_list_bov, ref_venuew)
+        vec[paper] = get_vector(emb_type, cname, sorted_list_bov, ref_venuew)
 
     ## generate average vectors by years
-    year_data = generate_bov_year()
+    year_data = generate_emb_year(emb_type)
     for cname, y_venues in year_data.items():
         for y, ref in y_venues.items():
-            vec["{}_{}_average".format(cname, y)] = get_vector(cname, sorted_list_bov, ref, year=y)
+            vec["{}_{}_average".format(cname, y)] = get_vector(emb_type, cname, sorted_list_bov, ref, year=y)
 
     # print(vec)
-    reduce_and_save(vec, number_of_venues, name_flag)
+    reduce_and_save(vec, number_of_venues, "{}_{}".format(emb_type, name_flag))
 
 
 if __name__ == '__main__':
-    download_data_save_as_json()
-    # generate_year_trends_plots("BoV_nref_Cheng")
-    # generate_indv_paper_plots()
+    # download_data_save_as_json()
+    # generate_year_trends_plots("BoF", "nref_Cheng")
+    generate_indv_paper_plots("BoF", "nref_conf_pl")

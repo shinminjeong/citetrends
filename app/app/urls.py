@@ -23,5 +23,6 @@ urlpatterns = [
     url(r'^menu/$', views.menu, name='menu'),
     url(r'^plot/$', views.plot, name='plot'),
     url(r'^search$', views.search, name='search'),
+    url(r'^search_by_name$', views.search_by_name, name='search_by_name'),
     url(r'^fos/$', views.fos, name='fos'),
 ]

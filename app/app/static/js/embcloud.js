@@ -1,6 +1,4 @@
-var canvas = document.getElementById('papers');
 
-var width = canvas.offsetWidth, height = $(window).height();
 var margin = 5, legend_margin = 200, text_margin = 15;
 var draw = SVG('papers').size(width, height);
     // draw.rect(width, height).fill("#fff").dblclick(function() { zoom_out() });
@@ -225,6 +223,53 @@ function print_selected_summary(data, element) {
       console.log("error");
     }
   });
+}
+
+// for debugging
+// function get_contour_value(contour_idx, data, name, element) {
+function get_contour_value(contour_idx, data, name) {
+  contour_idx_counter += 1;
+  // console.log("get_contour_value", name, data.length)
+  $.ajax({
+    type: "POST",
+    url: "/search_by_name",
+    data: {
+      "plottype": plottype,
+      "name": name,
+      "nodes": JSON.stringify(data)
+    },
+    success: function (result) {
+      cvalue = result["value"];
+      // console.log("cvalue", contour_idx, cvalue);
+      contour_idx_counter -= 1;
+      contour_values[contour_idx] = cvalue;
+      // for debugging
+      // element.innerHTML += cvalue;
+    },
+    error: function (result) {
+      console.log("error");
+    }
+  });
+}
+
+function generateContour(name, grid) {
+  var grid_w = grid_h = grid;
+  dim_every_nodes(0.3);
+  for (var y = 0; y < height; y += grid_h) {
+    for (var x = 0; x < width; x += grid_w) {
+      contour_idx += 1;
+      element = document.createElement('div');
+      element.className = 'select_rectangle'
+      element.style.left = x + 'px';
+      element.style.top = y + 'px';
+      element.style.width = grid_w + 'px';
+      element.style.height = grid_h + 'px';
+      // for debugging
+      // canvas.appendChild(element)
+      // get_contour_value(contour_idx, get_papers_in_rect(element), name, element);
+      get_contour_value(contour_idx, get_papers_in_rect(element), name);
+    }
+  }
 }
 
 function drawGrids(grid_w, grid_h) {
