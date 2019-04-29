@@ -1,6 +1,7 @@
 import os,sys,json
 import requests
 from collections import Counter
+from datetime import datetime
 import xml.etree.ElementTree as ET
 
 data_path = "../nsf_grant"
@@ -57,7 +58,43 @@ def query_nsf(award_id):
     return json.loads((response.content).decode("utf-8"))
 
 
+def count_pub_amount(year):
+    awards = dict()
+    path = os.path.join(data_path, str(year))
+    for filename in sorted(os.listdir(path)):
+        award_id = filename.split(".")[0]
+        try:
+            root = ET.parse(os.path.join(data_path, str(year), filename)).getroot()
+        except:
+            # print("[ET parse error]", os.path.join(data_path, str(year), filename))
+            continue
+        grant_type = root.find("Award").find("AwardInstrument").find("Value").text
+        grant_amount = int(root.find("Award").find("AwardAmount").text)
+        grant_start = datetime.strptime(root.find("Award").find("AwardEffectiveDate").text, "%m/%d/%Y")
+        grant_end = datetime.strptime(root.find("Award").find("AwardExpirationDate").text, "%m/%d/%Y")
+
+        num_pubs = 0
+        pubs = json.load(open(os.path.join(path, "{}.json".format(award_id)), 'r'))
+        if len(pubs["response"]["award"]) > 0:
+            num_pubs = len(pubs["response"]["award"][0]["publicationResearch"])
+        awards[award_id] = {
+            "type": grant_type,
+            "amount": grant_amount,
+            "num_pubs": num_pubs,
+            "duration": (grant_end-grant_start).days
+        }
+        if award_id == "0920865":
+            break
+    outfile = open(os.path.join(path, "numpub.json"), 'w')
+    json.dump(awards, outfile)
+
+
+def load_numpub_data(year):
+    data = json.load(open(os.path.join(data_path, str(year), "numpub.json"), 'r'))
+    return data
+
 if __name__ == '__main__':
     years = range(2009, 2010, 1)
     # count_numgrant_year(years)
-    download_num_pub(years)
+    # download_num_pub(years)
+    count_pub_amount(2009)
