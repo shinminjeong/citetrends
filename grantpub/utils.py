@@ -40,7 +40,9 @@ def download_num_pub(years):
     for year in years:
         path = os.path.join(data_path, str(year))
         for filename in sorted(os.listdir(path)):
-            award_id = filename.split(".")[0]
+            award_id, format = filename.split(".")[0]
+            if format == "json" or os.path.isfile(os.path.join(path, "{}.json".format(award_id))):
+                continue
             print(award_id)
             rsp = query_nsf(award_id)
             outfile = open(os.path.join(path, "{}.json".format(award_id)), 'w')
@@ -63,6 +65,8 @@ def count_pub_amount(year):
     path = os.path.join(data_path, str(year))
     for filename in sorted(os.listdir(path)):
         award_id = filename.split(".")[0]
+        if os.path.isfile(os.path.join(path, "{}.json".format(award_id))): # if file already exists
+            continue
         try:
             root = ET.parse(os.path.join(data_path, str(year), filename)).getroot()
         except:
@@ -96,5 +100,5 @@ def load_numpub_data(year):
 if __name__ == '__main__':
     years = range(2009, 2010, 1)
     # count_numgrant_year(years)
-    # download_num_pub(years)
-    count_pub_amount(2009)
+    download_num_pub(years)
+    # count_pub_amount(2009)
