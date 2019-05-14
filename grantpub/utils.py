@@ -2,9 +2,11 @@ import os,sys,json
 import requests
 from collections import Counter
 from datetime import datetime
+import pandas as pd
 import xml.etree.ElementTree as ET
 
 data_path = "../nsf_grant"
+outf_path = "../nsf_sum"
 nsf_api_prefix = "https://api.nsf.gov/services/v1/awards/"
 
 grant_div_name = {
@@ -20,6 +22,293 @@ grant_div_name = {
 "110": "Directorate for Education and Human Resource",
 "120": "National Coordination Office"
 }
+
+def search_grant_data(query, years):
+    # query = {key1: value, key2: value}
+    data = []
+    for year in years:
+        path = os.path.join(outf_path, "summary_{}.csv".format(year))
+        data.append(pd.read_csv(path, header=0))
+    o_df = df = pd.concat(data, ignore_index = True)
+    for k, v in query.items():
+        df = df[(df[k] == v)]
+    return o_df, df
+
+
+def read_xml_files(years):
+    df_cols = ["year", "id", "title", "type", "amount", "code", "start", "end", "firstname", "lastname", "email", "role", "institution"]
+
+    for year in years:
+        out_df = pd.DataFrame(columns = df_cols)
+        path = os.path.join(data_path, str(year))
+
+        for filename in sorted(os.listdir(path)):
+            award_id, file_format = filename.split(".")
+            if file_format == "json":
+                continue
+            try:
+                root = ET.parse(os.path.join(data_path, str(year), filename)).getroot()
+            except:
+                # print("[ET parse error]", os.path.join(data_path, str(year), filename))
+                pass
+            award = grant_type = root.find("Award")
+            title = award.find("AwardTitle").text
+            grant_type = award.find("AwardInstrument").find("Value").text
+            grant_amount = int(award.find("AwardAmount").text)
+            code = award.find("Organization").find("Code").text
+            grant_start = award.find("AwardEffectiveDate").text
+            grant_end = award.find("AwardExpirationDate").text
+
+            inst = award.find("Institution")
+            if inst:
+                inst_name = inst.find("Name").text
+            else:
+                inst_name = ""
+                print("No institution name", award_id)
+
+
+            investigators = award.findall("Investigator")
+            if not investigators:
+                print("No investigator", award_id)
+                continue
+            for investigator in investigators:
+                inv_fname = inv_lname = inv_eaddr = inv_role = ""
+                inv_fname = investigator.find("FirstName").text
+                inv_lname = investigator.find("LastName").text
+                inv_eaddr = investigator.find("EmailAddress").text
+                inv_role = investigator.find("RoleCode").text
+
+                # df_cols = ["year", "id", "title", "type", "amount", "code", "start", "end", "firstname", "lastname", "email", "role", "institution"]
+                data = [year, award_id, title, grant_type, grant_amount, code, grant_start, grant_end, inv_fname, inv_lname, inv_eaddr, inv_role, inst_name]
+                out_df = out_df.append(pd.Series(data, index = df_cols), ignore_index = True)
+
+        out_df.to_csv(os.path.join(outf_path, "summary_{}.csv".format(year)), sep=',', index=None, header=True)
+
+
+def num_grants_each_year(years):
+    # data = []
+    for year in years:
+        data = []
+        path = os.path.join(outf_path, "summary_{}.csv".format(year))
+        data.append(pd.read_csv(path, header=0))
+        concat_df = pd.concat(data, ignore_index = True)
+
+        groups = concat_df.groupby(["firstname", "lastname", "email"])
+        num_grants = []
+        for name, value in groups:
+            num_grants.append(value.shape[0])
+            # if value.shape[0] > 1:
+            #     print(name)
+            #     print(value.loc[:, ["year", "type", "amount", "code"]])
+        cnt = Counter(num_grants)
+        print(year, end =",")
+        for i in range(1, 10, 1):
+            print(cnt[i], end =",")
+        print()
+
+
+def num_people_num_grants(years):
+    data = []
+    for year in years:
+        path = os.path.join(outf_path, "summary_{}.csv".format(year))
+        data.append(pd.read_csv(path, header=0))
+    concat_df = pd.concat(data, ignore_index = True)
+
+    print("total number of grants", concat_df["id"].count())
+    groups = concat_df.groupby(["firstname", "lastname", "email"])
+    print("total number of people", groups["firstname", "lastname", "email"].count())
+
+    num_grants = []
+    for name, value in groups:
+        num_grants.append(value.shape[0])
+        # if value.shape[0] > 1:
+        #     print(name)
+        #     print(value.loc[:, ["year", "type", "amount", "code"]])
+    print(len(num_grants))
+    cnt = Counter(num_grants)
+    for i in range(1, 31, 1):
+        print(i, ", ", cnt[i])
+
+
+def num_pi_each_year(years):
+    for year in years:
+        data = []
+        path = os.path.join(outf_path, "summary_{}.csv".format(year))
+        data.append(pd.read_csv(path, header=0))
+        concat_df = pd.concat(data, ignore_index = True)
+
+        groups = concat_df.groupby(["year", "id", "title", "amount"])
+        # print("total number of award", groups["year", "id", "title", "amount"].count())
+
+        num_grants = []
+        amount_single_stnd = []
+        amount_single_cont = []
+        amount_single_other = []
+        amount_multiple_same_stnd = []
+        amount_multiple_same_cont = []
+        amount_multiple_same_other = []
+        amount_multiple_diff_stnd = []
+        amount_multiple_diff_cont = []
+        amount_multiple_diff_other = []
+        for name, value in groups:
+            num_grants.append(value.shape[0])
+            grant_amount = value.amount.values[0]
+            if value.shape[0] == 1:
+                if value.type.values[0] == "Standard Grant":
+                    amount_single_stnd.append(grant_amount)
+                elif value.type.values[0] == "Continuing grant":
+                    amount_single_cont.append(grant_amount)
+                else:
+                    amount_single_other.append(grant_amount)
+            else:
+                emails = [str(e).split("@")[-1] for e in value.email.values]
+                # print(emails)
+                if len(set(emails)) == 1:
+                    if value.type.values[0] == "Standard Grant":
+                        amount_multiple_same_stnd.append(grant_amount)
+                    elif value.type.values[0] == "Continuing grant":
+                        amount_multiple_same_cont.append(grant_amount)
+                    else:
+                        amount_multiple_same_other.append(grant_amount)
+                else:
+                    if value.type.values[0] == "Standard Grant":
+                        amount_multiple_diff_stnd.append(grant_amount)
+                    elif value.type.values[0] == "Continuing grant":
+                        amount_multiple_diff_cont.append(grant_amount)
+                    else:
+                        amount_multiple_diff_other.append(grant_amount)
+
+        # print(len(num_grants))
+        # print(len(amount_single_stnd), len(amount_single_cont), len(amount_single_other))
+        print(year, ",", len(amount_single_stnd), ",", len(amount_single_cont), ",",
+            len(amount_multiple_same_stnd), ",", len(amount_multiple_same_cont), ",",
+            len(amount_multiple_diff_stnd), ",", len(amount_multiple_diff_cont),
+            ",", sum(amount_single_stnd)/len(amount_single_stnd), ",", sum(amount_single_cont)/len(amount_single_cont),
+            ",", sum(amount_multiple_same_stnd)/len(amount_multiple_same_stnd), ",", sum(amount_multiple_same_cont)/len(amount_multiple_same_cont),
+            ",", sum(amount_multiple_diff_stnd)/len(amount_multiple_diff_stnd), ",", sum(amount_multiple_diff_cont)/len(amount_multiple_diff_cont))
+
+def num_pi_each_year_2(years):
+    for year in years:
+        data = []
+        path = os.path.join(outf_path, "summary_{}.csv".format(year))
+        data.append(pd.read_csv(path, header=0))
+        concat_df = pd.concat(data, ignore_index = True)
+
+        groups = concat_df.groupby(["year", "id", "title", "amount"])
+        # print("total number of award", groups["year", "id", "title", "amount"].count())
+
+        num_grants = []
+        amount_single = []
+        amount_multiple_same = []
+        amount_multiple_diff = []
+        for name, value in groups:
+            num_grants.append(value.shape[0])
+            grant_amount = value.amount.values[0]
+            if value.shape[0] == 1:
+                amount_single.append(value.shape[0])
+            else:
+                emails = [str(e).split("@")[-1] for e in value.email.values]
+                # print(emails)
+                if len(set(emails)) == 1:
+                    amount_multiple_same.append(value.shape[0])
+                else:
+                    amount_multiple_diff.append(value.shape[0])
+
+        # print(len(num_grants))
+        # print(len(amount_single_stnd), len(amount_single_cont), len(amount_single_other))
+        print(year,
+            ",", sum(amount_single)/len(amount_single),
+            ",", sum(amount_multiple_same)/len(amount_multiple_same),
+            ",", sum(amount_multiple_diff)/len(amount_multiple_diff))
+
+
+def parse_publication(years):
+    df_cols = ["year", "id", "authors", "title", "venue", "paper_year"]
+
+    for year in years:
+        out_df = pd.DataFrame(columns = df_cols)
+        path = os.path.join(data_path, str(year))
+        for filename in sorted(os.listdir(path)):
+            award_id, file_format = filename.split(".")
+            if file_format == "xml":
+                continue
+            print(award_id)
+            try:
+                publications = json.load(open(os.path.join(path, filename), "r"))
+                if publications["response"]["award"]:
+                    pubs = publications["response"]["award"][0]["publicationResearch"]
+                    for p in pubs:
+                        pinfo = p.split("~")
+                        authors = pinfo[0]
+                        title = pinfo[1]
+                        venue = pinfo[2]
+                        version = pinfo[3]
+                        pyear = pinfo[4]
+                        # print(authors, title, venue, pyear)
+
+                        data = [year, award_id, authors, title, venue, pyear]
+                        out_df = out_df.append(pd.Series(data, index = df_cols), ignore_index = True)
+            except Exception as e:
+                print("[Error]", e)
+
+        out_df.to_csv(os.path.join(outf_path, "publication_{}.csv".format(year)), sep=',', index=None, header=True)
+
+
+def num_publication_each_year(years):
+    # data = []
+    for year in years:
+        sum_data = pd.read_csv(os.path.join(outf_path, "summary_{}.csv".format(year)))
+        pub_data = pd.read_csv(os.path.join(outf_path, "publication_{}.csv".format(year)))
+        # print(sum_data.id, pub_data.id)
+        dtype = dict(id=str)
+        concat_df = pd.merge(left=sum_data.astype(dtype), right=pub_data.astype(dtype), how="left", on="id")
+        # print(concat_df)
+        groups = concat_df.groupby(["year_x", "id", "title_x", "amount"])
+
+        amount_single = []
+        amount_multiple_same = []
+        amount_multiple_diff = []
+        for name, value in groups:
+            papers = []
+            for p in value.title_y.values:
+                if str(p) != "nan":
+                    papers.append(p.lower())
+            num_pis = len(set(value.email.values))
+            num_papers = len(set(papers)) # remove duplicated papers
+            # num_papers = len(papers)/num_pis # include duplicated papers
+
+            # grant_amount = value.amount.values[0]
+            if num_pis == 1:
+                amount_single.append(num_papers)
+            else:
+                emails = [str(e).split("@")[-1] for e in list(set(value.email.values))]
+                # print(emails)
+                if len(set(emails)) == 1:
+                    amount_multiple_same.append(num_papers)
+                else:
+                    amount_multiple_diff.append(num_papers)
+
+        # print(len(num_grants))
+        # print(len(amount_single_stnd), len(amount_single_cont), len(amount_single_other))
+        print(year,
+            ",", sum(amount_single)/len(amount_single),
+            ",", sum(amount_multiple_same)/len(amount_multiple_same),
+            ",", sum(amount_multiple_diff)/len(amount_multiple_diff))
+
+
+def check_files(years):
+    for year in years:
+        path = os.path.join(data_path, str(year))
+        xml_files = []
+        json_files = []
+        for filename in sorted(os.listdir(path)):
+            award_id, file_format = filename.split(".")
+            if file_format == "xml":
+                xml_files.append(award_id)
+            else:
+                json_files.append(award_id)
+        print(len(xml_files), len(json_files))
+
 
 def count_numgrant_year(years):
     yamt = {y:{} for y in years}
@@ -83,20 +372,41 @@ def load_grant_data(filename):
     data = json.load(open(os.path.join(data_path, filename), 'r'))
     return data
 
-def download_num_pub(years):
+
+# download publication of a list of grants
+def download_pub_grant(grant_ids):
+    for gid in grant_ids:
+        year_2digit = int(int(gid)/100000)
+        print(year_2digit)
+        if year_2digit < 20:
+            year = 2000+year_2digit
+        else:
+            year = 1900+year_2digit
+        path = os.path.join(data_path, str(year))
+        award_id = "{:07d}".format(gid)
+        print(award_id)
+        rsp = query_nsf(award_id)
+        outfile = open(os.path.join(path, "{}.json".format(award_id)), 'w')
+        json.dump(rsp, outfile)
+
+
+# download all publications of year
+def download_pub(years):
     for year in years:
         path = os.path.join(data_path, str(year))
         for filename in sorted(os.listdir(path)):
             award_id, file_format = filename.split(".")
             if file_format == "json" or os.path.isfile(os.path.join(path, "{}.json".format(award_id))):
+            # if file_format == "json":
                 continue
             print(award_id)
             rsp = query_nsf(award_id)
             outfile = open(os.path.join(path, "{}.json".format(award_id)), 'w')
             json.dump(rsp, outfile)
 
+# get publicationResearch and publicationConference from grant id
 def query_nsf(award_id):
-    payload = {"printFields": "publicationResearch"}
+    payload = {"printFields": "publicationResearch,publicationConference"}
     response = requests.get("{}{}.json".format(nsf_api_prefix, award_id), params=payload)
     # print('curl: ' + response.url)
     # print('return statue: ' + str(response.status_code))
@@ -148,11 +458,14 @@ def load_numpub_data(year):
     data = json.load(open(os.path.join(data_path, str(year), "numpub.json"), 'r'))
     return data
 
+
+def grant_analysis(grant_id):
+
+
 if __name__ == '__main__':
     years = range(2000, 2020, 1)
     # count_numgrant_division_year(years)
     # count_numgrant_year(years)
-    # download_num_pub(years)
-    count_pub_amount(2010)
-    count_pub_amount(2011)
-    count_pub_amount(2000)
+    # download_pub([2013, 2017])
+    download_pub_grant([509377, 540866, 551658, 702240, 720505, 722210, 811691, 1042905,
+       1347630, 1405939, 1408896, 1549774, 1832624, 1832624, 1833291])
