@@ -555,11 +555,12 @@ def grant_analysis(grant_id):
         else:
             num_authors = num_citations = [0]
 
-        print('{},{},"{}",{},{},{},{},{},{},{},{}'.format(year, award_id, title, num_pi, grant_type, grant_amount,
-            nun_pubs, np.mean(num_authors), np.median(num_authors), np.mean(num_citations), np.median(num_citations)))
-        # return year, award_id, title, num_pi, grant_type, grant_amount, num_authors, num_citations
+        # print('{},{},"{}",{},{},{},{},{},{},{},{}'.format(year, award_id, title, num_pi, grant_type, grant_amount,
+        #     nun_pubs, np.mean(num_authors), np.median(num_authors), np.mean(num_citations), np.median(num_citations)))
+        return year, award_id, title, num_pi, grant_type, grant_amount, nun_pubs, np.mean(num_authors), np.mean(num_citations)
     except Exception as e:
         print("[Error]", e)
+        return None
 
 
 
