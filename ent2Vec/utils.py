@@ -7,6 +7,7 @@ from multiprocessing import Pool
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
+import umap
 
 from ent2Vec.names import name_id_pairs
 
@@ -393,6 +394,19 @@ def reduce_vec_tsne(vec, p, number_of_venues):
     return result
 
 
+def reduce_vec_umap(vec, number_of_venues):
+    reducer = umap.UMAP()
+    X = np.zeros((len(vec),number_of_venues))
+    for i, v in enumerate(vec.values()):
+        X[i] = v
+    embedding = reducer.fit_transform(X)
+    print(embedding.shape)
+    result = {}
+    for i, k in enumerate(vec.keys()):
+        result[k] = embedding[i].tolist()
+    return result
+
+
 def download_data_save_as_json():
     return generate_data()
 
@@ -432,11 +446,14 @@ def generate_year_trends_plots(emb_type, name_flag):
 
 
 def reduce_and_save(vec, number_of_venues, tag):
+    reduce_vec = reduce_vec_umap(vec, number_of_venues)
+    save_plot_result("{}_umap".format(tag), reduce_vec)
+
     reduce_vec = reduce_vec_pca(vec, number_of_venues)
-    # print(reduce_vec)
     save_plot_result("{}_pca".format(tag), reduce_vec)
 
-    for p in [10, 20, 40, 80, 160]:
+    # for p in [10, 20, 40, 80, 160]:
+    for p in [10, 20, 40]:
         reduce_t_vec = reduce_vec_tsne(vec, p, number_of_venues)
         save_plot_result("{}_tsne_{}".format(tag, p), reduce_t_vec)
 
@@ -489,5 +506,5 @@ def generate_indv_paper_plots(emb_type, name_flag):
 
 if __name__ == '__main__':
     # download_data_save_as_json()
-    # generate_year_trends_plots("BoF", "nref_Cheng")
-    generate_indv_paper_plots("BoF", "nref_conf_pl")
+    generate_year_trends_plots("BoF", "nref_conf")
+    # generate_indv_paper_plots("BoV", "nref_Cheng")
