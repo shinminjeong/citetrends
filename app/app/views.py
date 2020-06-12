@@ -24,6 +24,13 @@ def menu(request):
     avail_data = sorted(os.listdir(data_path))
     return render(request, "menu.html", {"type": file_type, "list": avail_data})
 
+def menu2(request):
+    file_type = request.GET.get("type")
+    data_path = os.path.join(os.getcwd(), "app/data", file_type)
+    avail_data = sorted(os.listdir(data_path))
+    return render(request, "menu2.html", {"type": file_type, "list": avail_data})
+
+
 def plot(request):
     global input_file
     input_file = request.GET.get("input")
@@ -35,6 +42,22 @@ def plot(request):
     data = json.loads(open(data_path).read())
     print(input_file, len(data), verbose)
     return render(request, "plot.html", {
+        "plottype": "avg" if file_type == "conf" else "indv",
+        "input_data": data, "verbose": verbose,
+        "grid_test": grid_test, "contour": contour,
+    })
+
+def timecurve(request):
+    global input_file
+    input_file = request.GET.get("input")
+    file_type = request.GET.get("type")
+    verbose = request.GET.get("verbose")
+    grid_test = request.GET.get("grid_test")
+    contour = request.GET.get("contour")
+    data_path = os.path.join(os.getcwd(), "app/data/", file_type, input_file)
+    data = json.loads(open(data_path).read())
+    print(input_file, len(data), verbose)
+    return render(request, "plot2.html", {
         "plottype": "avg" if file_type == "conf" else "indv",
         "input_data": data, "verbose": verbose,
         "grid_test": grid_test, "contour": contour,

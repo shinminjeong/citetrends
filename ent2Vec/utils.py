@@ -449,13 +449,13 @@ def reduce_and_save(vec, number_of_venues, tag):
     reduce_vec = reduce_vec_umap(vec, number_of_venues)
     save_plot_result("{}_umap".format(tag), reduce_vec)
 
-    reduce_vec = reduce_vec_pca(vec, number_of_venues)
-    save_plot_result("{}_pca".format(tag), reduce_vec)
+    # reduce_vec = reduce_vec_pca(vec, number_of_venues)
+    # save_plot_result("{}_pca".format(tag), reduce_vec)
 
     # for p in [10, 20, 40, 80, 160]:
-    for p in [10, 20, 40]:
-        reduce_t_vec = reduce_vec_tsne(vec, p, number_of_venues)
-        save_plot_result("{}_tsne_{}".format(tag, p), reduce_t_vec)
+    # for p in [10, 20, 40]:
+    #     reduce_t_vec = reduce_vec_tsne(vec, p, number_of_venues)
+    #     save_plot_result("{}_tsne_{}".format(tag, p), reduce_t_vec)
 
 
 def generate_emb_paper(emb_type):
@@ -506,5 +506,5 @@ def generate_indv_paper_plots(emb_type, name_flag):
 
 if __name__ == '__main__':
     # download_data_save_as_json()
-    generate_year_trends_plots("BoF", "nref_conf")
-    # generate_indv_paper_plots("BoV", "nref_Cheng")
+    # generate_year_trends_plots("BoF", "nref_conf")
+    generate_indv_paper_plots("BoF", "nref_Steve_conf")

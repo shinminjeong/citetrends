@@ -1,6 +1,6 @@
 
 var margin = 5, legend_margin = 200, text_margin = 15;
-var draw = SVG('papers').size(width, height);
+var draw = SVG().addTo('#papers');
     // draw.rect(width, height).fill("#fff").dblclick(function() { zoom_out() });
     draw.rect(width, height).fill("transparent").dblclick(function() { zoom_out() });
     draw.viewbox(0,0,width,height);
@@ -61,6 +61,12 @@ function drawCloud( data, type ) {
   var xs = (width-legend_margin)/xd, ys = height/yd;
   // console.log("original", xd, yd, xs, ys);
   // draw circle for each point
+  var paths = {};
+  for (var g = 0; g < glist.length; g++) {
+    paths[glist[g]] = {};
+  }
+  // console.log("groups", groups, paths)
+  // console.log("yearSet", Array.from(yearSet).sort())
   for (var key in data) {
     var name = key.split("_");
     // var gname = name[0]+"-"+name[1];
@@ -69,7 +75,8 @@ function drawCloud( data, type ) {
     var paperid = name[2];
     var newx = (data[key][0]-bbox[4])*xs+(width-legend_margin)/2,
         newy = (data[key][1]-bbox[5])*ys+height/2;
-    // console.log(data[key][0], data[key][1], newx, newy);
+    // console.log(gname, year, paperid, data[key][0], data[key][1], newx, newy);
+    paths[gname][year] = [newx, newy];
     var circle = draw_node.circle(nsize*2).id(key)
         .attr("ox", data[key][0]).attr("oy", data[key][1])
         .attr("px", newx).attr("py", newy)
@@ -80,6 +87,8 @@ function drawCloud( data, type ) {
     circle.click(function() { zoom_in_node(this.node.id) });
     every_nodes[gname].push(circle);
   }
+  console.log("paths", paths)
+
 
   // draw year for each point
   for (var key in data) {
@@ -430,7 +439,7 @@ function highlight_node(nid) {
   // console.log("highlight_node", nid);
   if (!zoomed) dim_every_nodes(0.6);
   mouseover_while_zoomed = nid;
-  var members = SVG.select("#"+nid).members;
+  var members = SVG("#"+nid).members;
   for (var n in members) {
     if (members[n].type == "circle") { members[n].attr("r", nsizeb).attr("opacity", 1); }
     if (members[n].type == "text") { members[n].text(nid).attr("visibility", "visible"); }
@@ -447,22 +456,25 @@ function remove_edges() {
 
 function draw_edges_group(gname) {
   var yearlist = Array.from(yearSet).sort();
-  var prv = null;
-  for (var y in yearlist) {
-    var cur = SVG.get("#"+gname+"_"+yearlist[y]);
+  var curves = [];
+  for (var y = 0; y < yearlist.length; y++) {
+    var cur = SVG("#"+gname+"_"+yearlist[y]);
     if (plottype == "indv") {
-      cur = SVG.get("#"+gname+"_"+yearlist[y]+"_average");
+      cur = SVG("#"+gname+"_"+yearlist[y]+"_average");
     }
     if (cur) {
-      if (prv) {
-        var path = draw_edge.line(prv.node.getAttribute("cx"), prv.node.getAttribute("cy"),
-                          cur.node.getAttribute("cx"), cur.node.getAttribute("cy"))
-                       .stroke(colors[glist.indexOf(gname)%colors.length]);
-        every_edges[gname].push(path);
-      }
-      prv = cur;
+      curves.push([cur.node.getAttribute("cx"), cur.node.getAttribute("cy")].join(","))
     }
   }
+
+  // var d = "M"+curves.join(" L"); // straight line
+  var d = "M"+curves[0]+" Q"+curves.join(" "); // curved line
+  console.log(d)
+  var path = draw_edge.path(d)
+    .fill("transparent")
+    .stroke(colors[glist.indexOf(gname)%colors.length]);
+
+  every_edges[gname].push(path);
 }
 
 function toggle_group(gid) {
@@ -508,7 +520,7 @@ function dim_every_nodes(opct) {
 function reset_highlight() {
   if (zoomed) {
     // console.log("mouseover_while_zoomed", mouseover_while_zoomed)
-    var members = SVG.select("#"+mouseover_while_zoomed).members;
+    var members = SVG("#"+mouseover_while_zoomed).members;
     for (var n in members) {
       if (members[n].type == "circle") { members[n].attr("r", nsize).attr("opacity", 0.6); }
       if (members[n].type == "text") { members[n].text(mouseover_while_zoomed).attr("visibility", "hidden"); }
