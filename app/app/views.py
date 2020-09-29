@@ -7,6 +7,7 @@ from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.conf import settings
 
 import os, json
+import numpy as np
 from collections import Counter
 from ent2Vec.utils import get_conf_name, get_fos_name
 
@@ -47,20 +48,32 @@ def plot(request):
         "grid_test": grid_test, "contour": contour,
     })
 
+def densityblobs(data):
+    confmap = {}
+    confblobs = {}
+    for k, v in data.items():
+        conf, year, id = k.split("_")
+        if conf not in confmap:
+            confmap[conf] = []
+        confmap[conf].append(v)
+    for k, v in confmap.items():
+        confblobs[k] = {"mean": np.mean(v, axis=0).tolist(), "std":np.std(v, axis=0).tolist()}
+    return confblobs
+
 def timecurve(request):
     global input_file
     input_file = request.GET.get("input")
     file_type = request.GET.get("type")
-    verbose = request.GET.get("verbose")
-    grid_test = request.GET.get("grid_test")
-    contour = request.GET.get("contour")
+    density = request.GET.get("density")
     data_path = os.path.join(os.getcwd(), "app/data/", file_type, input_file)
     data = json.loads(open(data_path).read())
-    print(input_file, len(data), verbose)
+    print(input_file, len(data), density)
+    print(densityblobs(data))
     return render(request, "plot2.html", {
-        "plottype": "avg" if file_type == "conf" else "indv",
-        "input_data": data, "verbose": verbose,
-        "grid_test": grid_test, "contour": contour,
+        "plottype": "indv",
+        "input_data": data,
+        "density_blob": densityblobs(data),
+        "density": density,
     })
 
 @csrf_exempt

@@ -35,60 +35,10 @@ var hover_switch = document.getElementById("hover_switch_ckb");
 var verbose_text = document.getElementById("verbose_div");
 var data = {{ input_data|safe }};
 var plottype = "{{ plottype }}";
-var verbose = "{{ verbose }}" == "true";
-var grid_test = "{{ grid_test }}" == "true";
-var contour = "{{ contour }}";
+var density = "{{ density }}" == "true";
+var density_data = {{ density_blob|safe }};
 drawCloud(data, plottype);
-if (verbose) { enableRectDraw(); }
-if (grid_test) {
-  drawGrids(200, 100);
-}
-
-var contour_idx_counter = 0;
-var contour_idx = -1;
-var contour_values = {};
-var grid_size = 50;
-if (contour != "None") {
-  console.log("contour", contour);
-  generateContour(contour, grid_size);
-  waitAndDraw();
-}
-
-function waitAndDraw() {
-  setTimeout(function() {
-    console.log(contour_idx_counter);
-    if(contour_idx_counter > 0) waitAndDraw();
-    else {
-      var values = [];
-      for (var i in contour_values) values.push(contour_values[i]);
-      console.log(values);
-      console.log(width, height, grid_size);
-      var ext_x = 0, ext_y = 0;
-      if (width%grid_size>0) ext_x = 1;
-      if (height%grid_size>0) ext_y = 1;
-      drawContourPlot(parseInt(width/grid_size)+ext_x, parseInt(height/grid_size)+ext_y, values);
-      // Whatever you want to do after the wait
-    }
-  }, 1000);
-}
-
-function drawContourPlot(c_width, c_height, volcano) {
-  var d_max = d3.max(volcano);
-  console.log("drawContourPlot", c_width, c_height, d_max);
-  var svg = d3.select("#contour");
-  var color = d3.scaleSequential(d3.interpolateYlGnBu).domain([0, d_max]); // Points per square pixel.
-
-  svg.selectAll("path")
-    .data(d3.contours()
-        .size([c_width, c_height])
-        .thresholds(d3.range(0, d_max+1, 0.05))
-      (volcano))
-    .enter().append("path")
-      .attr("d", d3.geoPath(d3.geoIdentity().scale(width / c_width)))
-      .attr("fill", "transparent")
-      .attr("stroke-width", "1px")
-      .attr("stroke", function(d) { return color(d.value); });
-}
+drawDensityBlobs(data, density_data);
 
 </script>
 </html>

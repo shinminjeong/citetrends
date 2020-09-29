@@ -1,5 +1,4 @@
-
-var margin = 5, legend_margin = 200, text_margin = 3;
+var margin = 0, legend_margin = 200, text_margin = 3;
 var draw = SVG().addTo('#papers');
     // draw.rect(width, height).fill("#fff").dblclick(function() { zoom_out() });
     draw.rect(width, height).fill("transparent").dblclick(function() { zoom_out() });
@@ -27,12 +26,61 @@ var legend_text = {};
 var zoomed = false;
 var plottype = "avg"; // avg or indv
 
+function drawDensityBlobs( data, density_blob ) {
+  var groups = new Set();
+  for (var key in data) {
+    // save names of nodes
+    var name = key.split("_");
+    // var gname = name[0]+"-"+name[1];
+    var gname = name[0];
+    var year = name[1];
+    var paperid = name[2];
+    groups.add(gname);
+    yearSet.add(year);
+    group_flag[gname] = true;
+    every_nodes[gname] = [];
+    every_nodes_t[gname] = [];
+    every_edges[gname] = [];
+
+    if (true) {
+      // calculating boundary box
+      bbox[0] = Math.min(bbox[0], data[key][0]-margin)
+      bbox[1] = Math.max(bbox[1], data[key][0]+margin)
+      bbox[2] = Math.min(bbox[2], data[key][1]-margin)
+      bbox[3] = Math.max(bbox[3], data[key][1]+margin)
+    }
+  }
+  bbox[4] = (bbox[0]+bbox[1])/2;
+  bbox[5] = (bbox[2]+bbox[3])/2;
+
+  glist = Array.from(groups); // list of names
+  var xd = bbox[1]-bbox[0],
+      yd = bbox[3]-bbox[2];
+  var xs = (width-legend_margin)/xd, ys = height/yd;
+  // console.log("original", xd, yd, xs, ys);
+
+  // draw circle for each point
+  for (var key in density_blob) {
+    // var gname = name[0]+"-"+name[1];
+    var gname = key;
+    var newx = (density_blob[key]["mean"][0]-bbox[4])*xs+(width-legend_margin)/2,
+        newy = (density_blob[key]["mean"][1]-bbox[5])*ys+height/2;
+    var newrx = density_blob[key]["std"][0]*xs,
+        newry = density_blob[key]["std"][1]*ys;
+    console.log(gname, newx, newy, newrx, newry);
+    var circle = draw_node.ellipse(newrx, newry).id(key)
+        .attr("class", gname+"_"+year)
+        .center(newx, newy)
+        .fill(colors[glist.indexOf(gname)%colors.length]);
+    every_nodes[gname].push(circle);
+  }
+
+  // draw legends
+  drawLegends();
+}
+
 function drawCloud( data, type ) {
   plottype = type;
-  // console.log("plottype", plottype)
-  if (plottype == "avg") {
-    nsize = 6, nsizeb = 10;
-  }
   var groups = new Set();
   for (var key in data) {
     // save names of nodes
@@ -81,8 +129,6 @@ function drawCloud( data, type ) {
         newy = (data[key][1]-bbox[5])*ys+height/2;
     // console.log(gname, year, paperid, data[key][0], data[key][1], newx, newy);
     paths[gname][year] = [newx, newy];
-    // var c_rsize = paperid=="average"?nsizeb*2:nsize*2;
-    // var c_color = paperid=="average"?colors[glist.indexOf(gname)%colors.length]:"white";
 
     var pre = every_nodes[gname][every_nodes[gname].length-1];
     var distance = pre?Math.hypot(pre.attr("px")-newx, pre.attr("py")-newy):0;
@@ -98,6 +144,83 @@ function drawCloud( data, type ) {
   }
 
   // draw year for each point
+  drawYears(xs, ys);
+
+  // draw legends
+  drawLegends();
+  function drawCloud( data, type ) {
+    plottype = type;
+    var groups = new Set();
+    for (var key in data) {
+      // save names of nodes
+      var name = key.split("_");
+      // var gname = name[0]+"-"+name[1];
+      var gname = name[0];
+      var year = name[1];
+      var paperid = name[2];
+      groups.add(gname);
+      yearSet.add(year);
+      group_flag[gname] = true;
+      every_nodes[gname] = [];
+      every_nodes_t[gname] = [];
+      every_edges[gname] = [];
+      // if (paperid == "average") {
+      if (true) {
+        // calculating boundary box
+        bbox[0] = Math.min(bbox[0], data[key][0]-margin)
+        bbox[1] = Math.max(bbox[1], data[key][0]+margin)
+        bbox[2] = Math.min(bbox[2], data[key][1]-margin)
+        bbox[3] = Math.max(bbox[3], data[key][1]+margin)
+      }
+    }
+    bbox[4] = (bbox[0]+bbox[1])/2;
+    bbox[5] = (bbox[2]+bbox[3])/2;
+
+    glist = Array.from(groups); // list of names
+    var xd = bbox[1]-bbox[0],
+        yd = bbox[3]-bbox[2];
+    var xs = (width-legend_margin)/xd, ys = height/yd;
+    // console.log("original", xd, yd, xs, ys);
+    // draw circle for each point
+    var paths = {};
+    for (var g = 0; g < glist.length; g++) {
+      paths[glist[g]] = {};
+    }
+    // console.log("groups", groups, paths)
+    // console.log("yearSet", Array.from(yearSet).sort())
+    for (var key in data) {
+      var name = key.split("_");
+      // var gname = name[0]+"-"+name[1];
+      var gname = name[0];
+      var year = name[1];
+      var paperid = name[2];
+      var newx = (data[key][0]-bbox[4])*xs+(width-legend_margin)/2,
+          newy = (data[key][1]-bbox[5])*ys+height/2;
+      // console.log(gname, year, paperid, data[key][0], data[key][1], newx, newy);
+      paths[gname][year] = [newx, newy];
+
+      var pre = every_nodes[gname][every_nodes[gname].length-1];
+      var distance = pre?Math.hypot(pre.attr("px")-newx, pre.attr("py")-newy):0;
+      // console.log(pre, distance);
+      var circle = draw_node.circle(2).id(key)
+          .attr("class", gname+"_"+year)
+          .attr("ox", data[key][0]).attr("oy", data[key][1])
+          .attr("px", newx).attr("py", newy)
+          .center(newx, newy)
+          // .stroke(colors[glist.indexOf(gname)%colors.length])
+          .fill(colors[glist.indexOf(gname)%colors.length]);
+      every_nodes[gname].push(circle);
+    }
+
+    // draw year for each point
+    drawYears(xs, ys);
+
+    // draw legends
+    drawLegends();
+  }}
+
+
+function drawYears(xs, ys) {
   for (var key in data) {
     var name = key.split("_");
     var gname = name[0];
@@ -116,8 +239,9 @@ function drawCloud( data, type ) {
       every_nodes_t[gname].push(c_text);
     }
   }
+}
 
-  // draw legends
+function drawLegends() {
   for (var gid in glist) {
     gname = glist[gid];
     legend_rect[gname] = draw_legend.rect(20,20).id(gid)
@@ -137,7 +261,6 @@ function drawCloud( data, type ) {
       draw_cvxhulls(gname)
     });
   }
-
 }
 
 function sleep(ms) {
