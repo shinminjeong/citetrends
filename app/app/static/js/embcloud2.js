@@ -78,6 +78,7 @@ function drawDensityBlobs( data, density_blob ) {
         .attr("class", gname+"_density")
         .center(newx, newy)
         .opacity(0.5)
+        .stroke("white")
         .fill(colors[glist.indexOf(gname)%colors.length])
         .rotate(density_blob[key]["deg"]);
     every_nodes[gname].push(circle);
