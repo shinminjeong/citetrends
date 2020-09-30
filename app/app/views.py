@@ -57,7 +57,12 @@ def densityblobs(data):
             confmap[conf] = []
         confmap[conf].append(v)
     for k, v in confmap.items():
-        confblobs[k] = {"mean": np.mean(v, axis=0).tolist(), "std":np.std(v, axis=0).tolist()}
+        X = np.array(v).T
+        cov = np.cov(X)
+        eigW, eigV = np.linalg.eig(cov)
+        arctan = np.arctan(eigV[:,0][1]/eigV[:,0][0])
+        # print(k, cov, np.sqrt(eigW), eigV, eigV[:,0], np.degrees(arctan))
+        confblobs[k] = {"mean": np.mean(v, axis=0).tolist(), "rx": np.sqrt(eigW[0]), "ry": np.sqrt(eigW[1]), "deg": np.degrees(arctan)}
     return confblobs
 
 def timecurve(request):
@@ -68,7 +73,6 @@ def timecurve(request):
     data_path = os.path.join(os.getcwd(), "app/data/", file_type, input_file)
     data = json.loads(open(data_path).read())
     print(input_file, len(data), density)
-    print(densityblobs(data))
     return render(request, "plot2.html", {
         "plottype": "indv",
         "input_data": data,

@@ -26,7 +26,7 @@ var legend_text = {};
 var zoomed = false;
 var plottype = "avg"; // avg or indv
 
-function drawDensityBlobs( data, density_blob ) {
+function calculateScale(data) {
   var groups = new Set();
   for (var key in data) {
     // save names of nodes
@@ -57,21 +57,29 @@ function drawDensityBlobs( data, density_blob ) {
   var xd = bbox[1]-bbox[0],
       yd = bbox[3]-bbox[2];
   var xs = (width-legend_margin)/xd, ys = height/yd;
+  var scale = Math.min(xs, ys);
+  return scale;
+}
+
+function drawDensityBlobs( data, density_blob ) {
+  var scale = calculateScale(data);
   // console.log("original", xd, yd, xs, ys);
 
   // draw circle for each point
   for (var key in density_blob) {
     // var gname = name[0]+"-"+name[1];
     var gname = key;
-    var newx = (density_blob[key]["mean"][0]-bbox[4])*xs+(width-legend_margin)/2,
-        newy = (density_blob[key]["mean"][1]-bbox[5])*ys+height/2;
-    var newrx = density_blob[key]["std"][0]*xs,
-        newry = density_blob[key]["std"][1]*ys;
-    console.log(gname, newx, newy, newrx, newry);
+    var newx = (density_blob[key]["mean"][0]-bbox[4])*scale+(width-legend_margin)/2,
+        newy = (density_blob[key]["mean"][1]-bbox[5])*scale+height/2;
+    var newrx = density_blob[key]["rx"]*scale,
+        newry = density_blob[key]["ry"]*scale;
+    // console.log(gname, scale, newx, newy, newrx, newry, density_blob[key]["deg"]);
     var circle = draw_node.ellipse(newrx, newry).id(key)
-        .attr("class", gname+"_"+year)
+        .attr("class", gname+"_density")
         .center(newx, newy)
-        .fill(colors[glist.indexOf(gname)%colors.length]);
+        .opacity(0.5)
+        .fill(colors[glist.indexOf(gname)%colors.length])
+        .rotate(density_blob[key]["deg"]);
     every_nodes[gname].push(circle);
   }
 
@@ -81,36 +89,7 @@ function drawDensityBlobs( data, density_blob ) {
 
 function drawCloud( data, type ) {
   plottype = type;
-  var groups = new Set();
-  for (var key in data) {
-    // save names of nodes
-    var name = key.split("_");
-    // var gname = name[0]+"-"+name[1];
-    var gname = name[0];
-    var year = name[1];
-    var paperid = name[2];
-    groups.add(gname);
-    yearSet.add(year);
-    group_flag[gname] = true;
-    every_nodes[gname] = [];
-    every_nodes_t[gname] = [];
-    every_edges[gname] = [];
-    // if (paperid == "average") {
-    if (true) {
-      // calculating boundary box
-      bbox[0] = Math.min(bbox[0], data[key][0]-margin)
-      bbox[1] = Math.max(bbox[1], data[key][0]+margin)
-      bbox[2] = Math.min(bbox[2], data[key][1]-margin)
-      bbox[3] = Math.max(bbox[3], data[key][1]+margin)
-    }
-  }
-  bbox[4] = (bbox[0]+bbox[1])/2;
-  bbox[5] = (bbox[2]+bbox[3])/2;
-
-  glist = Array.from(groups); // list of names
-  var xd = bbox[1]-bbox[0],
-      yd = bbox[3]-bbox[2];
-  var xs = (width-legend_margin)/xd, ys = height/yd;
+  var scale = calculateScale(data);
   // console.log("original", xd, yd, xs, ys);
   // draw circle for each point
   var paths = {};
@@ -125,8 +104,8 @@ function drawCloud( data, type ) {
     var gname = name[0];
     var year = name[1];
     var paperid = name[2];
-    var newx = (data[key][0]-bbox[4])*xs+(width-legend_margin)/2,
-        newy = (data[key][1]-bbox[5])*ys+height/2;
+    var newx = (data[key][0]-bbox[4])*scale+(width-legend_margin)/2,
+        newy = (data[key][1]-bbox[5])*scale+height/2;
     // console.log(gname, year, paperid, data[key][0], data[key][1], newx, newy);
     paths[gname][year] = [newx, newy];
 
@@ -144,7 +123,7 @@ function drawCloud( data, type ) {
   }
 
   // draw year for each point
-  drawYears(xs, ys);
+  drawYears(scale);
 
   // draw legends
   drawLegends();
@@ -220,14 +199,14 @@ function drawCloud( data, type ) {
   }}
 
 
-function drawYears(xs, ys) {
+function drawYears(scale) {
   for (var key in data) {
     var name = key.split("_");
     var gname = name[0];
     var year = name[1];
     var paperid = name[2];
-    var newx = (data[key][0]-bbox[4])*xs+(width-legend_margin)/2,
-        newy = (data[key][1]-bbox[5])*ys+height/2;
+    var newx = (data[key][0]-bbox[4])*scale+(width-legend_margin)/2,
+        newy = (data[key][1]-bbox[5])*scale+height/2;
     if (plottype == "avg" || (plottype == "indv" && paperid == "average")) {
       var label = year;
       // console.log(plottype, key, label)
